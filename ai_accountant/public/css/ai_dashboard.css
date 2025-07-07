@@ -1,0 +1,111 @@
+.cost-overview-section, .transaction-status-section {
+    padding: 15px;
+  }
+  .cost-charts, .cost-stats {
+    margin-top: 20px;
+  }
+  .stat-card {
+    background-color: #f8f9fa;
+    border-radius: 5px;
+    padding: 15px;
+    margin-bottom: 15px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+  .stat-value {
+    font-size: 24px;
+    font-weight: bold;
+    margin: 10px 0;
+  }
+  .stat-label {
+    color: #6c757d;
+  }
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+  }
+  .status-indicator {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 10px;
+    font-size: 12px;
+  }
+  .status-indicator.pending {
+    background-color: #f39c12;
+    color: white;
+  }
+  .status-indicator.processed {
+    background-color: #27ae60;
+    color: white;
+  }
+  .status-indicator.error {
+    background-color: #e74c3c;
+    color: white;
+  }
+  .status-indicator.reconciled {
+    background-color: #3498db;
+    color: white;
+  }
+  
+  .chat-interface {
+    display: flex;
+    flex-direction: column;
+    height: 600px;
+    padding: 15px;
+  }
+  .chat-box {
+    flex: 1;
+    overflow-y: auto;
+    max-height: 450px;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: 5px;
+    margin-bottom: 15px;
+  }
+  .chat-input {
+    display: flex;
+  }
+  .chat-input input {
+    flex: 1;
+    margin-right: 10px;
+  }
+  .chat-message {
+    margin-bottom: 15px;
+    padding: 10px;
+    border-radius: 5px;
+    max-width: 80%;
+  }
+  .chat-message.user {
+    background-color: #d1ecf1;
+    margin-left: auto;
+  }
+  .chat-message.system {
+    background-color: #f0f0f0;
+  }
+  .chat-message.system.error {
+    background-color: #f8d7da;
+  }
+  .typing-indicator {
+    display: inline-flex;
+    align-items: center;
+  }
+  .typing-indicator span {
+    height: 8px;
+    width: 8px;
+    background-color: #6c757d;
+    border-radius: 50%;
+    display: inline-block;
+    margin: 0 1px;
+    animation: typing-bounce 1.5s infinite ease-in-out;
+  }
+  .typing-indicator span:nth-child(2) {
+    animation-delay: 0.2s;
+  }
+  .typing-indicator span:nth-child(3) {
+    animation-delay: 0.4s;
+  }
+  @keyframes typing-bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+  }
+  

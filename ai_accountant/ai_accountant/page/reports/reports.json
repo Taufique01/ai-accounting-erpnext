@@ -1,0 +1,26 @@
+{
+ "content": null,
+ "creation": "2025-07-02 17:37:44.631244",
+ "docstatus": 0,
+ "doctype": "Page",
+ "idx": 2,
+ "modified": "2025-07-03 13:49:29.378404",
+ "modified_by": "Administrator",
+ "module": "Ai Accountant",
+ "name": "reports",
+ "owner": "Administrator",
+ "page_name": "reports",
+ "roles": [
+  {
+   "role": "Accounts Manager"
+  },
+  {
+   "role": "Administrator"
+  }
+ ],
+ "script": null,
+ "standard": "Yes",
+ "style": null,
+ "system_page": 1,
+ "title": "AI Reports"
+}

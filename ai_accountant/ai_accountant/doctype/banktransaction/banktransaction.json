@@ -1,0 +1,86 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-06-07 19:12:26.500717",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "external_id",
+  "payload",
+  "processed_hash",
+  "status",
+  "ai_result",
+  "error_description"
+ ],
+ "fields": [
+  {
+   "fieldname": "external_id",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "external_id",
+   "reqd": 1
+  },
+  {
+   "fieldname": "payload",
+   "fieldtype": "JSON",
+   "in_list_view": 1,
+   "label": "payload",
+   "reqd": 1
+  },
+  {
+   "fieldname": "processed_hash",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "processed_hash",
+   "reqd": 1
+  },
+  {
+   "default": "Pending",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "status",
+   "options": "Pending\nProcessed\nError\nRetryError",
+   "reqd": 1
+  },
+  {
+   "bold": 1,
+   "fieldname": "ai_result",
+   "fieldtype": "Long Text",
+   "label": "AI Result",
+   "length": 200,
+   "read_only": 1
+  },
+  {
+   "fieldname": "error_description",
+   "fieldtype": "Long Text",
+   "label": "Error description"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-07-05 20:11:43.224176",
+ "modified_by": "Administrator",
+ "module": "Ai Accountant",
+ "name": "BankTransaction",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

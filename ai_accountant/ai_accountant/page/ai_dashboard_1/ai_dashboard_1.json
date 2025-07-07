@@ -1,0 +1,27 @@
+{
+ "content": null,
+ "creation": "2025-06-11 11:55:53.326964",
+ "docstatus": 0,
+ "doctype": "Page",
+ "idx": 0,
+ "modified": "2025-06-11 15:04:27.374206",
+ "modified_by": "Administrator",
+ "module": "Ai Accountant",
+ "name": "ai-dashboard-1",
+ "owner": "Administrator",
+ "page_name": "ai-dashboard-1",
+ "roles": [
+  {
+   "role": "Accounts Manager"
+  },
+  {
+   "role": "Administrator"
+  },
+  {}
+ ],
+ "script": null,
+ "standard": "Yes",
+ "style": null,
+ "system_page": 0,
+ "title": "Ai dashboard 1"
+}
