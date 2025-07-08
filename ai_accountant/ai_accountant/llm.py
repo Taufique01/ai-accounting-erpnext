@@ -15,7 +15,7 @@ journal_schema = {
                 "items": {
                     "type": "object",
                     "properties": {
-                        "index": {"type": "number"},
+                        "name": {"type": "string"},
                         "entries": {
                             "type": "array",
                             "items": {
@@ -31,7 +31,7 @@ journal_schema = {
                             }
                         }
                     },
-                    "required": ["index", "entries"]
+                    "required": ["name", "entries"]
                 }
             }
         },
@@ -131,10 +131,6 @@ def classify_transaction(tx_list, status="Pending"):
             "role": "system",
             "content": f"Company's Chart of Accounts:\n{accounts_text}"
         },
-        {
-            "role": "system",
-            "content": "Return 'index' as array index of the transactions at the same order and length, user sent to you. starting from 0 so that user can backtrack bank transactions from the index. Do not return extra entries. The number of entry should be equal to the number of bank transactions."
-        }
     ]
     
     
@@ -180,6 +176,7 @@ def classify_transaction(tx_list, status="Pending"):
         )
 
         results = json.loads(response.choices[0].message.tool_calls[0].function.arguments)
+        print(results)
         
         # for result in results:
 
@@ -220,10 +217,14 @@ def classify_transaction(tx_list, status="Pending"):
 def classify_batch(status="Pending"):
     """Process a batch of pending transactions"""
     print("I am in classifying batch")
+    limit = frappe.db.get_single_value('LLMSettings', 'limit')
+    batch_size = frappe.db.get_single_value('LLMSettings', 'batch_size')
+    
     transactions = frappe.get_all(
         "BankTransaction",
         filters={"status": status},
         fields=["name", "payload", "error_description", "ai_result"],
+        limit = limit
     )
     
     batch_size = 10
@@ -246,28 +247,38 @@ def classify_batch(status="Pending"):
             
             if status == "Error":
                 temp = {
-                    'previous_classification_query_result': tx.ai_result,
-                    'gl_entry_error': tx.error_description,
-                    'transaction': parsed
+                    "name":tx.name,
+                    "previous_classification_query_result": tx.ai_result,
+                    "gl_entry_error": tx.error_description,
+                    "transaction": parsed
                 }
                 tx_list.append(temp)
             else:
-                tx_list.append(parsed)
+                tx_list.append({
+                    "name":tx.name,
+                    'transaction': parsed
+                    
+                })
             
         
         results = classify_transaction(tx_list, status)
         
-        
+        tx_map = {tx.name: tx for tx in working_list}
+
         for result in results:
-            result_of_the_tx  = working_list[result['index']]
+            
+            input_transaction  = tx_map.get(result['name'])
+            if not input_transaction:
+                print(f"Transaction {result['name']} not found in working_list")
+                continue
 
             if not result:
-                doc = frappe.get_doc("BankTransaction", result_of_the_tx.name)
+                doc = frappe.get_doc("BankTransaction", input_transaction.name)
                 doc.status = "Error"
                 doc.save()
                 continue
             
-            tx_details = json.loads(result_of_the_tx.payload)
+            tx_details = json.loads(input_transaction.payload)
         
             created_at_str = tx_details.get("createdAt")  # '2025-05-24T06:24:30.945859Z'
 
@@ -287,7 +298,7 @@ def classify_batch(status="Pending"):
                 
                 beautify_results = memo + debit + credit + "\n"
                 
-            tx_doc = frappe.get_doc("BankTransaction", result_of_the_tx.name)
+            tx_doc = frappe.get_doc("BankTransaction", input_transaction.name)
             tx_doc.ai_result = beautify_results
             tx_doc.save()
             
@@ -314,13 +325,13 @@ def classify_batch(status="Pending"):
                     je.insert()
                     je.submit()
 
-                doc = frappe.get_doc("BankTransaction", result_of_the_tx.name)
+                doc = frappe.get_doc("BankTransaction", input_transaction.name)
                 doc.status = "Processed"
                 doc.save()
             
             except Exception as e:
-                print(f"Error processing transaction {result_of_the_tx.name}: {str(e)}", "AI Accountant")
-                doc = frappe.get_doc("BankTransaction", result_of_the_tx.name)
+                print(f"Error processing transaction {input_transaction.name}: {str(e)}", "AI Accountant")
+                doc = frappe.get_doc("BankTransaction", input_transaction.name)
                 doc.error_description = str(e)
                 if doc.status == "Error":
                     doc.status = "RetryError"
