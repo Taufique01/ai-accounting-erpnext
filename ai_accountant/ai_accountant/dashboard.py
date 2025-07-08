@@ -17,7 +17,7 @@ def get_mercury_account_ids():
 
     try:
         response = requests.get(url, headers=headers)
-        print(response.text)
+        
         response.raise_for_status()  # Raise exception for HTTP errors
         data = response.json()
 
@@ -63,8 +63,6 @@ def fetch_transaction_data():
         "message": "Accounts fetched."
     })
     
-    print(account_ids)
-    
     total_transactions = 0
     progress = 1
     last_fetched_time = frappe.db.get_single_value('BankTransactionInfo', 'last_fetched_time')
@@ -81,7 +79,6 @@ def fetch_transaction_data():
             response = requests.get(url, headers=headers)
             response.raise_for_status()
             data = response.json()
-            # print("transaction data", data)
         except requests.exceptions.RequestException as e:
             frappe.throw(f"Mercury API error: {e}")
 
@@ -107,7 +104,7 @@ def fetch_transaction_data():
             doc.payload = json.dumps(tx)
             doc.processed_hash = tx_hash
             doc.status = "Pending"
-            print(doc.status)
+            
             doc.insert()
             
             total_transactions = total_transactions + 1
@@ -133,8 +130,7 @@ def fetch_transaction_data():
 
 @frappe.whitelist()
 def get_cost_data():
-    # fetch_transaction_data()
-    # print("in get cost data")
+
     """Get cost data for the AI Accountant dashboard."""
 
     # Calculate date 30 days ago
@@ -225,7 +221,6 @@ def get_cost_data():
 @frappe.whitelist()
 def get_transaction_stats():
     """Get transaction statistics for the dashboard."""
-    # fetch_transaction_data()
 
     # Count transactions by status
     status_counts = frappe.db.sql("""
@@ -255,8 +250,6 @@ def get_transaction_stats():
         order_by="modified desc",
         limit=10
     )
-    # print("recent tx------------------------")
-    # print(recent_txs)
 
     # Format recent transactions for frontend
     formatted_txs = []
@@ -276,13 +269,11 @@ def get_transaction_stats():
         
 
    
-    # print("===>", total, progress)
     return {
         "status_counts": status_dict,
         "total_count": total_count,
         "today_count": today_count,
         "avg_processing_time": avg_time,
         "recent_transactions": formatted_txs,
-        # "total_processing": total.decode('utf-8'),
         
     }

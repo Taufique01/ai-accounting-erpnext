@@ -10,7 +10,7 @@ frappe.pages['ai-dashboard'].on_page_load = function (wrapper) {
 		<div class="btn-group mb-3" role="group">
 			<button class="btn btn-secondary tab-btn" data-tab="cost">Cost Overview</button>
 			<button class="btn btn-secondary tab-btn" data-tab="status">Transaction Status</button>
-			<button class="btn btn-secondary tab-btn" data-tab="ai-accountant">GL Assistant</button>
+			<button class="btn btn-secondary tab-btn" data-tab="ai-accountant">GL Entry Assistant</button>
 			<button class="btn btn-secondary tab-btn" data-tab="chat">Chat</button>
 		</div>
 		<div id="ai-tab-content"></div>
@@ -19,6 +19,7 @@ frappe.pages['ai-dashboard'].on_page_load = function (wrapper) {
 
 	// Handle tab clicks
 	page.body.on('click', '.tab-btn', function () {
+		
 		$('.tab-btn').removeClass('btn-primary').addClass('btn-secondary');
 		$(this).removeClass('btn-secondary').addClass('btn-primary');
 
@@ -111,30 +112,89 @@ function showCostOverview() {
 	});
 }
 
-function renderCostCharts(data) {
-	console.log("cost data:", data);
-	new frappe.Chart("#daily-cost-chart", {
+const App = {
+	charts: {},
+  
+	renderChart(id, config) {
+	  const el = document.querySelector(`#${id}`);
+	  if (!el) return;
+  
+	  // destroy if already exists
+	  if (this.charts[id] && typeof this.charts[id].destroy === "function") {
+		this.charts[id].destroy();
+		this.charts[id] = null;
+		el.innerHTML = "";  // clear SVG and observers
+	  }
+  
+	  this.charts[id] = new frappe.Chart("#" + id, config);
+	},
+  
+	renderCharts(data) {
+	  this.renderChart("daily-cost-chart", {
 		title: "Daily API Costs",
 		data: {
-			labels: data.daily.labels,
-			datasets: [{ name: "Daily Cost", values: data.daily.values }]
+		  labels: data.daily.labels,
+		  datasets: [{ name: "Daily Cost", values: data.daily.values }]
 		},
 		type: 'line',
 		height: 250,
 		colors: ['#8e44ad'],
 		axisOptions: { xIsSeries: true }
-	});
-
-	new frappe.Chart("#monthly-cost-chart", {
+	  });
+  
+	  this.renderChart("monthly-cost-chart", {
 		title: "Monthly API Costs",
 		data: {
-			labels: data.monthly.labels,
-			datasets: [{ name: "Monthly Cost", values: data.monthly.values }]
+		  labels: data.monthly.labels,
+		  datasets: [{ name: "Monthly Cost", values: data.monthly.values }]
 		},
 		type: 'bar',
 		height: 250,
 		colors: ['#2980b9']
-	});
+	  });
+	},
+
+	renderStatusChart(data) {
+		const id = "status-chart";
+		const el = document.querySelector("#" + id);
+		if (!el || el.offsetParent === null) {
+		  // Element missing or hidden, don't render now
+		  console.warn(`#${id} container missing or hidden. Skipping render.`);
+		  return;
+		}
+	
+		const labels = Object.keys(data.status_counts);
+		const values = Object.values(data.status_counts);
+	
+		// Destroy existing chart and clear container before recreating
+		if (this.charts[id] && typeof this.charts[id].destroy === "function") {
+		  this.charts[id].destroy();
+		  this.charts[id] = null;
+		  el.innerHTML = ""; // Clear old SVG content
+		}
+	
+		// Delay creation to avoid DOM timing issues
+		setTimeout(() => {
+		  this.charts[id] = new frappe.Chart("#" + id, {
+			title: "Transaction Status Distribution",
+			data: {
+			  labels,
+			  datasets: [{ values }]
+			},
+			type: 'pie',
+			height: 250,
+			colors: ['#27ae60', '#e74c3c', '#f39c12', '#3498db', '#9b59b6']
+		  });
+		}, 50);
+	  }
+
+
+  };
+  
+function renderCostCharts(data) {
+	
+	App.renderCharts(data);
+
 
 	$("#token-stats").html(`
 		<div class="stat-card">
@@ -189,19 +249,9 @@ function showTransactionStatus() {
 	});
 }
 
-function renderTransactionStats(data) {
-	console.log(data);
-	new frappe.Chart("#status-chart", {
-		title: "Transaction Status Distribution",
-		data: {
-			labels: Object.keys(data.status_counts),
-			datasets: [{ values: Object.values(data.status_counts) }]
-		},
-		type: 'pie',
-		height: 250,
-		colors: ['#27ae60', '#e74c3c', '#f39c12', '#3498db', '#9b59b6']
-	});
 
+function renderTransactionStats(data) {
+	App.renderStatusChart(data);
 
 	$("#processing-stats").html(`
 		<div class="stat-card">

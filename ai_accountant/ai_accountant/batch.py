@@ -13,7 +13,6 @@ def check_pending_transactions():
         job_name="batch_classify",
         timeout=1800,
         # 30 minutes
-        batch_size=100
 )
 
 

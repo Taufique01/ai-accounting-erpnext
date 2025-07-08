@@ -29,7 +29,6 @@ journal_schema = {
                                     "amount": {"type": "number"},
                                     "memo": {"type": "string"},
                                     "confidence": {"type": "number"},
-                                    "date": {"type":"number"}
                                 },
                                 "required": ["debit_account", "credit_account", "amount", "memo", "confidence",]
                             }
@@ -47,14 +46,9 @@ journal_schema = {
 def classify_transaction(text_list):
     """Classify multiple natural language transaction texts using OpenAI"""
     
-    accounts = frappe.get_all(
-        "Account",
-        fields=["name", "account_type", "parent_account", "company"],
-        filters={"company": "Taufique company (Demo)", "is_group": 0},
-        order_by="name"
-    )
 
-    accounts_text = format_accounts_for_prompt(accounts)
+
+    accounts_text = format_accounts_for_prompt()
 
     prompt = [
         {

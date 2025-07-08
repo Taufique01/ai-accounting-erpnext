@@ -5,7 +5,8 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
-  "last_fetched_time"
+  "last_fetched_time",
+  "company_name"
  ],
  "fields": [
   {
@@ -14,13 +15,19 @@
    "in_list_view": 1,
    "label": "last fetched time",
    "reqd": 1
+  },
+  {
+   "fieldname": "company_name",
+   "fieldtype": "Data",
+   "label": "Company name",
+   "reqd": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2025-07-07 15:18:35.743666",
+ "modified": "2025-07-08 15:53:58.307244",
  "modified_by": "Administrator",
  "module": "Ai Accountant",
  "name": "BankTransactionInfo",

@@ -41,7 +41,6 @@ journal_schema = {
 
 
 def get_openai_api_key():
-    print("I am in open AI API key")
     return frappe.conf.get('openai_api_key')
 
 
@@ -94,7 +93,16 @@ def update_vendor_map(vendor_name, gl_account):
         })
         doc.insert()
 
-def format_accounts_for_prompt(accounts):
+def format_accounts_for_prompt():
+    company_name = frappe.db.get_single_value('BankTransactionInfo', 'company_name')
+
+    accounts = frappe.get_all(
+        "Account",
+        fields=["name", "account_type", "parent_account", "company"],
+        filters={"company": company_name, "is_group": 0},
+        order_by="name"
+    )
+    
     lines = []
     for acc in accounts:
         # Example: "Cash - TC (Asset > Current Assets), Type: Cash"
@@ -111,16 +119,8 @@ ERROR_PROMPT = "You are provided with:\n" + "1. The current bank transaction,\n"
 
 def classify_transaction(tx_list, status="Pending"):
     """Classify a single transaction using OpenAI"""
-        
-    accounts = frappe.get_all(
-        "Account",
-        fields=["name", "account_type", "parent_account", "company"],
-        filters={"company": "Taufique company (Demo)", "is_group": 0},
-        order_by="name"
-    )
 
-    accounts_text = format_accounts_for_prompt(accounts)
-    # print(accounts_text)
+    accounts_text = format_accounts_for_prompt()
 
     prompt = [
         {
@@ -180,7 +180,6 @@ def classify_transaction(tx_list, status="Pending"):
         )
 
         results = json.loads(response.choices[0].message.tool_calls[0].function.arguments)
-        print("AI results", results["results"], response.usage)
         
         # for result in results:
 
@@ -212,33 +211,28 @@ def classify_transaction(tx_list, status="Pending"):
         return results["results"]
 
     except Exception as e:
-        print("expec tions ----------------------------------------")
         print(f"OpenAI API Error: {str(e)}", "AI Accountant")
         return None
 
 
 
 
-def classify_batch(batch_size=10, status="Pending"):
+def classify_batch(status="Pending"):
     """Process a batch of pending transactions"""
     print("I am in classifying batch")
     transactions = frappe.get_all(
         "BankTransaction",
         filters={"status": status},
         fields=["name", "payload", "error_description", "ai_result"],
-        limit=5
     )
     
-    # batch_size = 
+    batch_size = 10
     
-    # print(transactions)
-
     if not transactions:
         return "No pending transactions found"
 
     processed = 0
     total_transactions = len(transactions)
-    print("---------------->", total_transactions)
     
     for i in range(0, total_transactions, batch_size):
         notify_progress(processed, total_transactions)
@@ -260,17 +254,13 @@ def classify_batch(batch_size=10, status="Pending"):
             else:
                 tx_list.append(parsed)
             
-        print("============>", len(tx_list))
         
         results = classify_transaction(tx_list, status)
         
         
         for result in results:
-            # result = json.loads(result_str)
             result_of_the_tx  = working_list[result['index']]
-            # result_of_the_tx = next((x for x in working_list if x.get("id") == result['transaction_id']), None)
 
-            print(result)
             if not result:
                 doc = frappe.get_doc("BankTransaction", result_of_the_tx.name)
                 doc.status = "Error"
