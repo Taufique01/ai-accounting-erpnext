@@ -280,7 +280,8 @@ def classify_batch(status="Pending"):
             
             beautify_results = ""
             for entry in result.get("entries", []):
-                memo = "Memo: " + entry.get("memo", ) +"\n"
+                print(entry)
+                memo = "Memo: " + (entry.get("memo", "") or "") +"\n"
                 debit = "Debit: " + entry.get("debit_account") + " -- " + str(entry.get("amount")) + "\n"
                 credit = "Credit: " + entry.get("credit_account") + " -- " + str(entry.get("amount")) + "\n"
                 
