@@ -1,8 +1,9 @@
 import frappe
 import json
 from openai import OpenAI
-from datetime import datetime, date
+from datetime import datetime
 from ai_accountant.ai_accountant.realtime_utils import notify_progress
+from apps.ai_accountant.ai_accountant.ai_accountant.llm_helper import get_openai_api_key, log_cost, format_accounts_for_prompt
 
 # Define OpenAI function calling schema
 journal_schema = {
@@ -40,34 +41,6 @@ journal_schema = {
 }
 
 
-def get_openai_api_key():
-    return frappe.conf.get('openai_api_key')
-
-
-def log_cost(tokens_in, tokens_out, model="gpt-3.5-turbo-1106"):
-    """Log the OpenAI usage cost"""
-    if model.startswith("gpt-3.5"):
-        in_rate = 0.0000005
-        out_rate = 0.0000015
-    elif model.startswith("gpt-4o-mini"):
-        in_rate = 0.000001
-        out_rate = 0.000003
-    else:
-        in_rate = 0.000003
-        out_rate = 0.000006
-
-    cost = (tokens_in * in_rate) + (tokens_out * out_rate)
-
-    log = frappe.get_doc({
-        "doctype": "LlmCostLog",
-        "date": datetime.now().date(),
-        "tokens_in": tokens_in,
-        "tokens_out": tokens_out,
-        "cost": cost
-    })
-    log.insert()
-    return cost
-
 
 def check_vendor_map(vendor_name):
     if not vendor_name:
@@ -93,26 +66,6 @@ def update_vendor_map(vendor_name, gl_account):
         })
         doc.insert()
 
-def format_accounts_for_prompt():
-    company_name = frappe.db.get_single_value('BankTransactionInfo', 'company_name')
-
-    accounts = frappe.get_all(
-        "Account",
-        fields=["name", "account_type", "parent_account", "company"],
-        filters={"company": company_name, "is_group": 0},
-        order_by="name"
-    )
-    
-    lines = []
-    for acc in accounts:
-        # Example: "Cash - TC (Asset > Current Assets), Type: Cash"
-        line = (
-            f"name: {acc['name']}, "
-            f"account_type: {acc['account_type']}, "
-            f"parent_account: {acc['parent_account']}"
-        )
-        lines.append(line)
-    return "\n".join(lines)
 
 
 ERROR_PROMPT = "You are provided with:\n" + "1. The current bank transaction,\n" + "2. The previous classification result for this transaction,\n" + "3. The previous general ledger entry error (if available).\n\n" + "Use the company's Chart of Accounts to select the most accurate classification. so that the error goes away"

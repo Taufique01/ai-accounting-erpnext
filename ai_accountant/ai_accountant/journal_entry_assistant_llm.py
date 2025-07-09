@@ -2,7 +2,7 @@ import frappe
 import json
 from openai import OpenAI
 from datetime import datetime
-from ai_accountant.ai_accountant.llm import get_openai_api_key, log_cost, format_accounts_for_prompt
+from apps.ai_accountant.ai_accountant.ai_accountant.llm_helper import get_openai_api_key, log_cost, format_accounts_for_prompt
 
 
 journal_schema = {

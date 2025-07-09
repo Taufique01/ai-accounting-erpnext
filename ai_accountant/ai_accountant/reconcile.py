@@ -69,7 +69,7 @@ def reconcile_transactions():
             payment_doc.save()
 
             # Update bank transaction status
-            frappe.db.set_value("BankTransaction", match["name"], "status", "Reconciled")
+            frappe.db.et_value("BankTransaction", match["name"], "status", "Reconciled")
 
             reconciled_count += 1
 

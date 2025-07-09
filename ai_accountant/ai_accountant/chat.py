@@ -1,7 +1,7 @@
 import frappe
 from openai import OpenAI
 from frappe.utils import today, add_days
-from ai_accountant.ai_accountant.llm import get_openai_api_key, log_cost
+from ai_accountant.ai_accountant.llm_helper import get_openai_api_key, log_cost
 
 @frappe.whitelist()
 def ai_chat(question):
@@ -122,8 +122,8 @@ Top Expenses:
     context += f"""
 Accounts Receivable Aging:
 - Total Outstanding: {ar_aging[0].total_outstanding if ar_aging else 0}
-- 0–30 Days: {ar_aging[0].within_30 if ar_aging else 0}
-- 31–60 Days: {ar_aging[0].within_60 if ar_aging else 0}
+- 0-30 Days: {ar_aging[0].within_30 if ar_aging else 0}
+- 31-60 Days: {ar_aging[0].within_60 if ar_aging else 0}
 - Over 60 Days: {ar_aging[0].over_60 if ar_aging else 0}
 """
     return context
