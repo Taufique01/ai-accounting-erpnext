@@ -5,7 +5,7 @@ def get_openai_api_key():
     return frappe.conf.get('openai_api_key')
 
 
-def log_cost(tokens_in, tokens_out, model="gpt-3.5-turbo-1106"):
+def log_cost(tokens_in, tokens_out, input="", output="", duration=None, model="gpt-3.5-turbo-1106",):
     """Log the OpenAI usage cost"""
     if model.startswith("gpt-3.5"):
         in_rate = 0.0000005
@@ -18,13 +18,21 @@ def log_cost(tokens_in, tokens_out, model="gpt-3.5-turbo-1106"):
         out_rate = 0.000006
 
     cost = (tokens_in * in_rate) + (tokens_out * out_rate)
+    
+    
+    current_user = frappe.session.user.name
 
     log = frappe.get_doc({
         "doctype": "LlmCostLog",
         "date": datetime.now().date(),
         "tokens_in": tokens_in,
         "tokens_out": tokens_out,
-        "cost": cost
+        "cost": cost,
+        "input": input,
+        "output": output,
+        "duration": duration,
+        "user": current_user
+        
     })
     log.insert()
     return cost

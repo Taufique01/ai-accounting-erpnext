@@ -1,12 +1,12 @@
 import frappe
 import json
-import openai
 from frappe.utils.pdf import get_pdf
 from frappe.utils import today, add_days
 from frappe.email.doctype.email_template.email_template import get_email_template
 from ai_accountant.ai_accountant.llm import get_openai_api_key, log_cost
 from frappe.desk.query_report import run
 from openai import OpenAI
+from datetime import datetime
 
 # Define the schema for report formatting
 summary_schema = {
@@ -96,23 +96,27 @@ def summarize_report(report_data, report_name):
         # base_url="https://openrouter.ai/api/v1",
         api_key=api_key,
     )
+    
+    # print(report_data)
 
     prompt = [
-        {"role": "system", "content": f"You are an expert financial analyst. Summarize this {report_name}."},
+        {"role": "system", "content": f"You are an expert CPA. Generate a formal {report_name}. Return in clean html format"},
         {"role": "user", "content": json.dumps(report_data)}
     ]
 
     try:
+        start_time = datetime.now() 
+
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             
-            tools=[
-                {
-                    "type": "function",
-                    "function": summary_schema  # your function schema goes here
-                }
-            ],
-            tool_choice={"type": "function", "function": {"name": "format_financials"}},
+            # tools=[
+            #     {
+            #         "type": "function",
+            #         "function": summary_schema  # your function schema goes here
+            #     }
+            # ],
+            # tool_choice={"type": "function", "function": {"name": "format_financials"}},
             messages=prompt
         )
 
@@ -120,12 +124,26 @@ def summarize_report(report_data, report_name):
             tokens_in=response.usage.prompt_tokens,
             tokens_out=response.usage.completion_tokens
         )
+        end_time = datetime.now() 
 
         result = json.loads(response.choices[0].message.tool_calls[0].function.arguments)
+        
+        
+        duration = end_time - start_time
+
+        log_cost(
+            tokens_in=response.usage.prompt_tokens,
+            tokens_out=response.usage.completion_tokens,
+            input=json.dumps(prompt),
+            output=json.dumps(result),
+            duration = duration
+        )
+        print("================================")
+        print(result)
         return result
 
     except Exception as e:
-        frappe.log_error(f"OpenAI API Error: {str(e)}", "AI Accountant")
+        print(f"OpenAI API Error: {str(e)}", "AI Accountant")
         return None
 
 def generate_pdf_from_summary(summary, report_name):

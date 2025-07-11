@@ -3,7 +3,7 @@ import json
 from openai import OpenAI
 from datetime import datetime
 from ai_accountant.ai_accountant.realtime_utils import notify_progress
-from apps.ai_accountant.ai_accountant.ai_accountant.llm_helper import get_openai_api_key, log_cost, format_accounts_for_prompt
+from ai_accountant.ai_accountant.llm_helper import get_openai_api_key, log_cost, format_accounts_for_prompt
 
 # Define OpenAI function calling schema
 journal_schema = {
@@ -72,6 +72,9 @@ ERROR_PROMPT = "You are provided with:\n" + "1. The current bank transaction,\n"
 
 def classify_transaction(tx_list, status="Pending"):
     """Classify a single transaction using OpenAI"""
+    
+    start_time = datetime.now()
+
 
     accounts_text = format_accounts_for_prompt()
 
@@ -122,14 +125,24 @@ def classify_transaction(tx_list, status="Pending"):
             max_tokens=1000
         )
 
+        end_time = datetime.now() 
+        
+        duration = end_time - start_time
+        
+        
 
-        log_cost(
-            tokens_in=response.usage.prompt_tokens,
-            tokens_out=response.usage.completion_tokens
-        )
 
         results = json.loads(response.choices[0].message.tool_calls[0].function.arguments)
         print(results)
+        
+        
+        log_cost(
+            tokens_in=response.usage.prompt_tokens,
+            tokens_out=response.usage.completion_tokens,
+            input=f"Classify the following transactions:\n{json.dumps(tx_list, indent=2)}",
+            output=json.dumps(results),
+            duration = duration
+        )
         
         # for result in results:
 

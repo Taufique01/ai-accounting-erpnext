@@ -1,4 +1,6 @@
 import frappe
+import json
+from datetime import datetime
 from openai import OpenAI
 from frappe.utils import today, add_days
 from ai_accountant.ai_accountant.llm_helper import get_openai_api_key, log_cost
@@ -33,16 +35,27 @@ Provide specific numbers and insights from the data."""
 
     # Call OpenAI
     try:
+        start_time = datetime.now() 
+
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=prompt,
             temperature=0.2  # Lower temperature for financial accuracy
         )
+        
+        end_time = datetime.now() 
+        
+        duration = end_time - start_time
+        
 
         # Log the cost
         log_cost(
             tokens_in=response.usage.prompt_tokens,
             tokens_out=response.usage.completion_tokens,
+            duration=duration,
+            input=json.dumps(prompt),
+            output=response.choices[0].message.content,
+            duration=duration,
             model="gpt-3.5-turbo"
         )
 

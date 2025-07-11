@@ -2,7 +2,7 @@ import frappe
 import json
 from openai import OpenAI
 from datetime import datetime
-from apps.ai_accountant.ai_accountant.ai_accountant.llm_helper import get_openai_api_key, log_cost, format_accounts_for_prompt
+from ai_accountant.ai_accountant.llm_helper import get_openai_api_key, log_cost, format_accounts_for_prompt
 
 
 journal_schema = {
@@ -46,6 +46,7 @@ journal_schema = {
 def classify_transaction(text_list):
     """Classify multiple natural language transaction texts using OpenAI"""
     
+    start_time = datetime.now()
 
 
     accounts_text = format_accounts_for_prompt()
@@ -82,6 +83,8 @@ def classify_transaction(text_list):
             messages=prompt,
             max_tokens=2000
         )
+        
+        
 
         log_cost(
             tokens_in=response.usage.prompt_tokens,
@@ -90,7 +93,18 @@ def classify_transaction(text_list):
 
         results = json.loads(response.choices[0].message.tool_calls[0].function.arguments)
         
-        print("AI result", results)
+        end_time = datetime.now() 
+        
+        duration = end_time - start_time
+
+        log_cost(
+            tokens_in=response.usage.prompt_tokens,
+            tokens_out=response.usage.completion_tokens,
+            input=f"Classify the following transactions:\n{json.dumps(text_list, indent=2)}",
+            output=json.dumps(results),
+            duration = duration
+        )
+        
         return results["results"]
 
     except Exception as e:
