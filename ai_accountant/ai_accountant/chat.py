@@ -52,7 +52,6 @@ Provide specific numbers and insights from the data."""
         log_cost(
             tokens_in=response.usage.prompt_tokens,
             tokens_out=response.usage.completion_tokens,
-            duration=duration,
             input=json.dumps(prompt),
             output=response.choices[0].message.content,
             duration=duration,

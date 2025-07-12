@@ -49,6 +49,7 @@ def check_vendor_map(vendor_name):
     return frappe.db.get_value("VendorMap", {"vendor_hash": vendor_hash}, "gl_account")
 
 
+
 def update_vendor_map(vendor_name, gl_account):
     if not vendor_name or not gl_account:
         return
@@ -81,14 +82,18 @@ def classify_transaction(tx_list, status="Pending"):
     prompt = [
         {
             "role": "system",
-            "content": "You are an expert accountant. Classify bank transactions into journal entries by matching transaction details with the company's Chart of Accounts below. If you can't classify or tell the account name, tell that Unknown account name",
+            "content": (
+                "You are an expert accountant. Your task is to classify bank transactions into double-entry journal entries. "
+                "For each transaction, return the corresponding 'debit_account' and 'credit_account' using the company's Chart of Accounts below. Use the name of the account as 'debit_account' and 'credit_account'"
+                "Only use account names from the list.You can also use vendor details if available. If no suitable match is found or you are not confident, return 'Unknown account name' for debit or credit."
+            )
         },
         {
             "role": "system",
             "content": f"Company's Chart of Accounts:\n{accounts_text}"
-        },
+        }
     ]
-    
+
     
     if status == "Error":
         prompt.append({
@@ -210,20 +215,32 @@ def classify_batch(status="Pending"):
         
         for tx in working_list:
             parsed = json.loads(tx.payload)
+            counterparty = tx.get("counterparty_name", "").strip().upper()
+            vendor_doc = frappe.db.get_value(
+                "VendorMap",
+                {"vendor_name": ["like", counterparty]},
+                ["vendor_name", "debit_account", "credit_account"],
+                as_dict=True
+            )
             
+            vendor = ""
+            if vendor_doc:
+                vendor = f"Vendor: {vendor.vendor_name}. Credit: {vendor.credit_account}. Debit: {vendor.debit_account}"
+
             if status == "Error":
                 temp = {
                     "name":tx.name,
                     "previous_classification_query_result": tx.ai_result,
                     "gl_entry_error": tx.error_description,
-                    "transaction": parsed
+                    "transaction": parsed,
+                    "vendor": vendor
                 }
                 tx_list.append(temp)
             else:
                 tx_list.append({
                     "name":tx.name,
-                    'transaction': parsed
-                    
+                    'transaction': parsed,
+                    "vendor": vendor
                 })
             
         

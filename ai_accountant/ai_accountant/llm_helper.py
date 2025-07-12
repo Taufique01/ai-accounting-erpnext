@@ -20,7 +20,7 @@ def log_cost(tokens_in, tokens_out, input="", output="", duration=None, model="g
     cost = (tokens_in * in_rate) + (tokens_out * out_rate)
     
     
-    current_user = frappe.session.user.name
+    current_user = frappe.session.user
 
     log = frappe.get_doc({
         "doctype": "LlmCostLog",
@@ -43,7 +43,7 @@ def format_accounts_for_prompt():
 
     accounts = frappe.get_all(
         "Account",
-        fields=["name", "account_type", "parent_account", "company"],
+        fields=["name", "account_type", "parent_account"],
         filters={"company": company_name, "is_group": 0},
         order_by="name"
     )

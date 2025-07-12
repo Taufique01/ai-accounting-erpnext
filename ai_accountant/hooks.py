@@ -243,7 +243,7 @@ app_include_css = "/assets/ai_accountant/css/ai_dashboard.css"
 scheduler_events = {
 	"daily": [
 	"ai_accountant.ai_accountant.batch.process_all_pending",
-	"ai_accountant.ai_accountant.reconcile.reconcile_transactions",
+	
 	"ai_accountant.ai_accountant.reports.generate_management_pack"
 	]
 }

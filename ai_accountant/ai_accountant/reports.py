@@ -56,15 +56,6 @@ def run_builtin_report(report_name, filters):
     return result["result"]
 
 def run_report(report_name):
-    # if filters is None:
-    #     filters = {"company": frappe.defaults.get_user_default("Company")}
-
-    # Add default filters for example (adjust per report)
-    # if report_name == "Cash Flow Statement":
-    # filters.setdefault("from_date", add_days(today(), -30))
-    # filters.setdefault("to_date", today())
-    
-    # print(filters)
     
     filters = {
         "company": frappe.defaults.get_user_default("Company"),
@@ -110,13 +101,13 @@ def summarize_report(report_data, report_name):
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             
-            # tools=[
-            #     {
-            #         "type": "function",
-            #         "function": summary_schema  # your function schema goes here
-            #     }
-            # ],
-            # tool_choice={"type": "function", "function": {"name": "format_financials"}},
+            tools=[
+                {
+                    "type": "function",
+                    "function": summary_schema  # your function schema goes here
+                }
+            ],
+            tool_choice={"type": "function", "function": {"name": "format_financials"}},
             messages=prompt
         )
 
@@ -299,11 +290,10 @@ def generate_management_pack():
 @frappe.whitelist()
 def get_latest_summary(report_name):
     report_data = run_report(report_name)
-    # if not report_data:
-    #     return {"summary_html": "<p>Unable to generate report.</p>", "file_url": ""}
+    if not report_data:
+        return {"summary_html": "<p>Unable to generate report.</p>", "file_url": ""}
 
     summary = summarize_report(report_data, report_name)
-    # print(summary)
     if not summary:
         return {"summary_html": "<p>Unable to summarize report.</p>", "file_url": ""}
 

@@ -93,17 +93,24 @@ def fetch_transaction_data():
                 f"{tx.get('amount')}{tx.get('createdAt')}{tx.get('counterpartyName')}{tx.get('note') or ''}"
             )
             
-            
-
             # Create a new BankTransaction with only the required fields
             doc = frappe.get_doc({
                 "doctype": "BankTransaction",
             })
+            print(tx)
             
             doc.external_id = tx["id"]
             doc.payload = json.dumps(tx)
             doc.processed_hash = tx_hash
             doc.status = "Pending"
+            
+            doc.amount = tx.get("amount", 0.0)
+            doc.transaction_date =  datetime.fromisoformat(tx.get("createdAt").rstrip('Z'))
+            doc.transaction_status = tx.get("status")
+            doc.bank_description = tx.get("bankDescription")
+            doc.counterparty_name = tx.get("counterpartyName")
+            doc.kind = tx.get("kind")
+            doc.dashboard_link = tx.get("dashboardLink")
             
             doc.insert()
             

@@ -10,7 +10,16 @@
   "processed_hash",
   "status",
   "ai_result",
-  "error_description"
+  "error_description",
+  "transaction_date",
+  "amount",
+  "currency",
+  "transaction_status",
+  "bank_description",
+  "counterparty_name",
+  "kind",
+  "note",
+  "dashboard_link"
  ],
  "fields": [
   {
@@ -55,12 +64,60 @@
    "fieldname": "error_description",
    "fieldtype": "Long Text",
    "label": "Error description"
+  },
+  {
+   "fieldname": "transaction_date",
+   "fieldtype": "Datetime",
+   "label": "Transaction date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "amount",
+   "fieldtype": "Float",
+   "label": "Transaction amount",
+   "reqd": 1
+  },
+  {
+   "fieldname": "currency",
+   "fieldtype": "Data",
+   "label": "Currency",
+   "precision": "2"
+  },
+  {
+   "fieldname": "transaction_status",
+   "fieldtype": "Data",
+   "label": "Transaction status"
+  },
+  {
+   "fieldname": "bank_description",
+   "fieldtype": "Data",
+   "label": "Bank description"
+  },
+  {
+   "fieldname": "counterparty_name",
+   "fieldtype": "Data",
+   "label": "Counter party name"
+  },
+  {
+   "fieldname": "kind",
+   "fieldtype": "Data",
+   "label": "Kind"
+  },
+  {
+   "fieldname": "note",
+   "fieldtype": "Text",
+   "label": "Note"
+  },
+  {
+   "fieldname": "dashboard_link",
+   "fieldtype": "Data",
+   "label": "Dashboard link"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-07-05 20:11:43.224176",
+ "modified": "2025-07-12 14:00:29.274183",
  "modified_by": "Administrator",
  "module": "Ai Accountant",
  "name": "BankTransaction",
