@@ -111,10 +111,6 @@ def summarize_report(report_data, report_name):
             messages=prompt
         )
 
-        log_cost(
-            tokens_in=response.usage.prompt_tokens,
-            tokens_out=response.usage.completion_tokens
-        )
         end_time = datetime.now() 
 
         result = json.loads(response.choices[0].message.tool_calls[0].function.arguments)
@@ -127,7 +123,8 @@ def summarize_report(report_data, report_name):
             tokens_out=response.usage.completion_tokens,
             input=json.dumps(prompt),
             output=json.dumps(result),
-            duration = duration
+            duration = duration,
+            model="gpt-4o"
         )
         print("================================")
         print(result)

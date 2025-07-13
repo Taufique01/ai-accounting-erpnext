@@ -50,7 +50,7 @@ def classify_transaction(text_list):
 
 
     accounts_text = format_accounts_for_prompt()
-
+    print(accounts_text)
     prompt = [
         {
             "role": "system",
@@ -74,7 +74,7 @@ def classify_transaction(text_list):
 
     try:
         response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
+            model="gpt-4o",
             tools=[{
                 "type": "function",
                 "function": journal_schema
@@ -85,12 +85,6 @@ def classify_transaction(text_list):
         )
         
         
-
-        log_cost(
-            tokens_in=response.usage.prompt_tokens,
-            tokens_out=response.usage.completion_tokens
-        )
-
         results = json.loads(response.choices[0].message.tool_calls[0].function.arguments)
         
         end_time = datetime.now() 
@@ -164,8 +158,6 @@ def process_text_batch(text_list, posting_date=None):
         else:
             success = success + 1
             
-        
-
     return {"success": success, "failed":failed, "error_responses": error_responses, "is_success": True}
 
 

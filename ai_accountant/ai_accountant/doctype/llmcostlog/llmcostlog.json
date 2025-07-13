@@ -12,7 +12,8 @@
   "input",
   "output",
   "duration",
-  "user"
+  "user",
+  "model"
  ],
  "fields": [
   {
@@ -54,12 +55,18 @@
    "fieldname": "user",
    "fieldtype": "Data",
    "label": "Username"
+  },
+  {
+   "fieldname": "model",
+   "fieldtype": "Select",
+   "label": "Model",
+   "options": "gpt-4o\ngpt-3.5-turbo"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-07-11 21:17:05.799530",
+ "modified": "2025-07-13 16:56:38.126883",
  "modified_by": "Administrator",
  "module": "Ai Accountant",
  "name": "LlmCostLog",

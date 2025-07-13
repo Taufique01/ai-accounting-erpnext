@@ -149,6 +149,7 @@ def classify_transaction(tx_list, status="Pending"):
             input=f"Classify the following transactions:\n{json.dumps(tx_list, indent=2)}",
             output=json.dumps(results),
             duration = duration,
+            model=model
         )
         
         # for result in results:

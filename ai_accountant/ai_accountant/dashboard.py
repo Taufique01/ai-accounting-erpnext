@@ -194,8 +194,8 @@ def get_cost_data():
     # Model usage breakdown (percentage usage for tokens_in <= 4000 and > 4000)
     # Assuming tokens_in <= 4000 => GPT-3.5, tokens_in > 4000 => GPT-4o-mini
     total_count = frappe.db.count("LlmCostLog")
-    gpt35_count = frappe.db.count("LlmCostLog", filters={"tokens_in": ["<=", 4000]})
-    gpt4o_count = frappe.db.count("LlmCostLog", filters={"tokens_in": [">", 4000]})
+    gpt35_count = frappe.db.count("LlmCostLog", filters={"model": "gpt-3.5-turbo"})
+    gpt4o_count = frappe.db.count("LlmCostLog", filters={"model": "gpt-4o"})
 
     model_usage = {
         "gpt35": (gpt35_count / total_count * 100) if total_count else 0,
@@ -273,8 +273,6 @@ def get_transaction_stats():
             "status": tx.status
         })
         
-        
-
    
     return {
         "status_counts": status_dict,
