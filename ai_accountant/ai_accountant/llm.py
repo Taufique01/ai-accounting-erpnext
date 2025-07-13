@@ -94,12 +94,14 @@ def classify_transaction(tx_list, status="Pending"):
         }
     ]
 
-    
+    model = "gpt-3.5-turbo"    
     if status == "Error":
         prompt.append({
             "role": "system",
             "content": ERROR_PROMPT
         })
+        
+        model = "gpt-4o"
     
     
     prompt.append(        {
@@ -118,7 +120,7 @@ def classify_transaction(tx_list, status="Pending"):
     )
     try:
         response = client.chat.completions.create(
-            model="gpt-3.5-turbo",  # You may want to switch to just "gpt-3.5-turbo" or a newer model
+            model=model,  # You may want to switch to just "gpt-3.5-turbo" or a newer model
             tools=[
                 {
                     "type": "function",
