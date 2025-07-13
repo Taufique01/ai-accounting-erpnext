@@ -85,8 +85,9 @@
   },
   {
    "fieldname": "transaction_status",
-   "fieldtype": "Data",
-   "label": "Transaction status"
+   "fieldtype": "Select",
+   "label": "Transaction status",
+   "options": "pending\nsent\ncancelled\nfailed"
   },
   {
    "fieldname": "bank_description",
@@ -100,8 +101,9 @@
   },
   {
    "fieldname": "kind",
-   "fieldtype": "Data",
-   "label": "Kind"
+   "fieldtype": "Select",
+   "label": "Kind",
+   "options": "externalTransfer\ninternalTransfer\noutgoingPayment\ncreditCardCredit\ncreditCardTransaction\ndebitCardTransaction\nincomingDomesticWire\ncheckDeposit\nincomingInternationalWire\ntreasuryTransfer\nwireFee\ncardInternationalTransactionFee\nother"
   },
   {
    "fieldname": "note",
@@ -117,7 +119,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-07-12 14:00:29.274183",
+ "modified": "2025-07-13 17:45:26.191259",
  "modified_by": "Administrator",
  "module": "Ai Accountant",
  "name": "BankTransaction",
