@@ -99,7 +99,7 @@ def summarize_report(report_data, report_name):
         start_time = datetime.now() 
 
         response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
+            model="gpt-4o",
             
             tools=[
                 {
