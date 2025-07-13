@@ -7,7 +7,9 @@
  "field_order": [
   "credit_account",
   "debit_account",
-  "vendor_name"
+  "vendor_name",
+  "party_type",
+  "party"
  ],
  "fields": [
   {
@@ -26,14 +28,28 @@
   {
    "fieldname": "vendor_name",
    "fieldtype": "Data",
-   "label": "Vendor name",
+   "label": "Vendor name(counterparty)",
    "reqd": 1
+  },
+  {
+   "fieldname": "party",
+   "fieldtype": "Dynamic Link",
+   "in_list_view": 1,
+   "label": "Party",
+   "options": "party_type"
+  },
+  {
+   "fieldname": "party_type",
+   "fieldtype": "Link",
+   "label": "Party type",
+   "options": "DocType",
+   "search_index": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-07-12 22:49:47.686745",
+ "modified": "2025-07-13 15:37:04.106193",
  "modified_by": "Administrator",
  "module": "Ai Accountant",
  "name": "VendorMap",

@@ -3,7 +3,7 @@ import json
 from openai import OpenAI
 from datetime import datetime
 from ai_accountant.ai_accountant.realtime_utils import notify_progress
-from ai_accountant.ai_accountant.llm_helper import get_openai_api_key, log_cost, format_accounts_for_prompt
+from ai_accountant.ai_accountant.llm_helper import get_openai_api_key, log_cost, format_accounts_for_prompt, prepare_tx_list_for_prompt
 
 # Define OpenAI function calling schema
 journal_schema = {
@@ -148,7 +148,7 @@ def classify_transaction(tx_list, status="Pending"):
             tokens_out=response.usage.completion_tokens,
             input=f"Classify the following transactions:\n{json.dumps(tx_list, indent=2)}",
             output=json.dumps(results),
-            duration = duration
+            duration = duration,
         )
         
         # for result in results:
@@ -185,7 +185,83 @@ def classify_transaction(tx_list, status="Pending"):
         return None
 
 
+def save_ai_classification_result(result, input_transaction):
+    beautify_results = ""
+    for entry in result.get("entries", []):
+        print(entry)
+        memo = "Memo: " + (entry.get("memo", "") or "") +"\n"
+        debit = "Debit: " + entry.get("debit_account") + " -- " + str(entry.get("amount")) + "\n"
+        credit = "Credit: " + entry.get("credit_account") + " -- " + str(entry.get("amount")) + "\n"
+                
+        beautify_results = memo + debit + credit + "\n"
+                
+    tx_doc = frappe.get_doc("BankTransaction", input_transaction.name)
+    tx_doc.ai_result = beautify_results
+    tx_doc.save()
 
+def get_party_info(account, counterparty):
+    account_type = frappe.db.get_value("Account", account, "account_type")
+    if account_type in ["Receivable", "Payable"]:
+        return frappe.db.get_value(
+            "VendorMap",
+            {"vendor_name": ["like", f"%{counterparty}%"]},
+            ["party", "party_type"],
+            as_dict=True
+        )
+    return None
+
+
+def save_journal_entry(result, created_at_str):
+    
+    # Remove the trailing Z and parse datetime
+    created_at_str = created_at_str.rstrip('Z')
+    dt = datetime.fromisoformat(created_at_str)
+    # Extract date only in YYYY-MM-DD format
+    posting_date = dt.date().isoformat()  # '2025-05-24'
+    
+
+        
+    for entry in result.get("entries", []):
+        
+        
+        debit_account = entry.get("debit_account")
+        credit_account = entry.get("credit_account")
+        amount = entry.get("amount")
+        memo = entry.get("memo", "")
+        counterparty = entry.get("counterparty", "")
+            
+        # Get party info for debit and credit accounts
+        party_for_debit = get_party_info(debit_account, counterparty)
+        party_for_credit = get_party_info(credit_account, counterparty)
+        
+        # Prepare debit line
+        debit_line = {
+            "account": debit_account,
+            "debit_in_account_currency": amount,
+            "credit_in_account_currency": 0
+        }
+        if party_for_debit:
+            debit_line.update(party_for_debit)
+
+        # Prepare credit line
+        credit_line = {
+            "account": credit_account,
+            "debit_in_account_currency": 0,
+            "credit_in_account_currency": amount
+        }
+        if party_for_credit:
+            credit_line.update(party_for_credit)
+
+        # Create Journal Entry
+        je = frappe.get_doc({
+            "doctype": "Journal Entry",
+            "posting_date": posting_date,
+            "user_remark": memo,
+            "accounts": [debit_line, credit_line]
+        })
+        je.insert()
+        je.submit()
+    
 
 def classify_batch(status="Pending"):
     """Process a batch of pending transactions"""
@@ -210,48 +286,16 @@ def classify_batch(status="Pending"):
     
     for i in range(0, total_transactions, batch_size):
         notify_progress(processed, total_transactions)
-
-        tx_list = []
         
         working_list = transactions[i:i+batch_size]
         
-        for tx in working_list:
-            parsed = json.loads(tx.payload)
-            counterparty = tx.get("counterparty_name", "").strip().upper()
-            vendor_doc = frappe.db.get_value(
-                "VendorMap",
-                {"vendor_name": ["like", counterparty]},
-                ["vendor_name", "debit_account", "credit_account"],
-                as_dict=True
-            )
+        tx_list = prepare_tx_list_for_prompt(status, working_list)
             
-            vendor = ""
-            if vendor_doc:
-                vendor = f"Vendor: {vendor.vendor_name}. Credit: {vendor.credit_account}. Debit: {vendor.debit_account}"
-
-            if status == "Error":
-                temp = {
-                    "name":tx.name,
-                    "previous_classification_query_result": tx.ai_result,
-                    "gl_entry_error": tx.error_description,
-                    "transaction": parsed,
-                    "vendor": vendor
-                }
-                tx_list.append(temp)
-            else:
-                tx_list.append({
-                    "name":tx.name,
-                    'transaction': parsed,
-                    "vendor": vendor
-                })
-            
-        
         results = classify_transaction(tx_list, status)
         
         tx_map = {tx.name: tx for tx in working_list}
 
         for result in results:
-            
             input_transaction  = tx_map.get(result['name'])
             if not input_transaction:
                 print(f"Transaction {result['name']} not found in working_list")
@@ -265,54 +309,18 @@ def classify_batch(status="Pending"):
             
             tx_details = json.loads(input_transaction.payload)
         
+
+            save_ai_classification_result(result, input_transaction)
+            
+        
             created_at_str = tx_details.get("createdAt")  # '2025-05-24T06:24:30.945859Z'
 
-            # Remove the trailing Z and parse datetime
-            created_at_str = created_at_str.rstrip('Z')
-            dt = datetime.fromisoformat(created_at_str)
-
-            # Extract date only in YYYY-MM-DD format
-            posting_date = dt.date().isoformat()  # '2025-05-24'
-            
-            beautify_results = ""
-            for entry in result.get("entries", []):
-                print(entry)
-                memo = "Memo: " + (entry.get("memo", "") or "") +"\n"
-                debit = "Debit: " + entry.get("debit_account") + " -- " + str(entry.get("amount")) + "\n"
-                credit = "Credit: " + entry.get("credit_account") + " -- " + str(entry.get("amount")) + "\n"
-                
-                beautify_results = memo + debit + credit + "\n"
-                
-            tx_doc = frappe.get_doc("BankTransaction", input_transaction.name)
-            tx_doc.ai_result = beautify_results
-            tx_doc.save()
-            
-            
             try:
-                for entry in result.get("entries", []):
-                    je = frappe.get_doc({
-                        "doctype": "Journal Entry",
-                        "posting_date": posting_date,
-                        "user_remark": entry.get("memo", ""),
-                        "accounts": [
-                            {
-                                "account": entry.get("debit_account"),
-                                "debit_in_account_currency": entry.get("amount"),
-                                "credit_in_account_currency": 0
-                            },
-                            {
-                                "account": entry.get("credit_account"),
-                                "debit_in_account_currency": 0,
-                                "credit_in_account_currency": entry.get("amount")
-                            }
-                        ]
-                    })
-                    je.insert()
-                    je.submit()
-
+                save_journal_entry(result, created_at_str)
                 doc = frappe.get_doc("BankTransaction", input_transaction.name)
                 doc.status = "Processed"
                 doc.save()
+
             
             except Exception as e:
                 print(f"Error processing transaction {input_transaction.name}: {str(e)}", "AI Accountant")
