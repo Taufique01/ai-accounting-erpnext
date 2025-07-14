@@ -1,0 +1,27 @@
+{
+ "content": null,
+ "creation": "2025-07-14 21:33:53.002798",
+ "docstatus": 0,
+ "doctype": "Page",
+ "icon": "home",
+ "idx": 0,
+ "modified": "2025-07-14 21:47:56.596774",
+ "modified_by": "Administrator",
+ "module": "Ai Accountant",
+ "name": "home",
+ "owner": "Administrator",
+ "page_name": "home",
+ "roles": [
+  {
+   "role": "Administrator"
+  },
+  {
+   "role": "Accounts Manager"
+  }
+ ],
+ "script": null,
+ "standard": "Yes",
+ "style": null,
+ "system_page": 1,
+ "title": "Home"
+}
