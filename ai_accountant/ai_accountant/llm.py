@@ -276,8 +276,6 @@ def classify_batch(status="Pending"):
         limit = limit
     )
     
-    batch_size = 10
-    
     if not transactions:
         return "No pending transactions found"
 
