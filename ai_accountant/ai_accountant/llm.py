@@ -128,8 +128,7 @@ def classify_transaction(tx_list, status="Pending"):
                 }
             ],
             tool_choice={"type": "function", "function": {"name": "post_journal"}},
-            messages=prompt,
-            max_tokens=1000
+            messages=prompt
         )
 
         end_time = datetime.now() 
@@ -296,44 +295,48 @@ def classify_batch(status="Pending"):
         
         tx_map = {tx.name: tx for tx in working_list}
 
-        for result in results:
-            input_transaction  = tx_map.get(result['name'])
-            if not input_transaction:
-                print(f"Transaction {result['name']} not found in working_list")
-                continue
+        try:
+            for result in results:
+                input_transaction  = tx_map.get(result['name'])
+                if not input_transaction:
+                    print(f"Transaction {result['name']} not found in working_list")
+                    continue
 
-            if not result:
-                doc = frappe.get_doc("BankTransaction", input_transaction.name)
-                doc.status = "Error"
-                doc.save()
-                continue
-            
-            tx_details = json.loads(input_transaction.payload)
-        
-
-            save_ai_classification_result(result, input_transaction)
-            
-        
-            created_at_str = tx_details.get("createdAt")  # '2025-05-24T06:24:30.945859Z'
-
-            try:
-                save_journal_entry(result, created_at_str)
-                doc = frappe.get_doc("BankTransaction", input_transaction.name)
-                doc.status = "Processed"
-                doc.save()
-
-            
-            except Exception as e:
-                print(f"Error processing transaction {input_transaction.name}: {str(e)}", "AI Accountant")
-                doc = frappe.get_doc("BankTransaction", input_transaction.name)
-                doc.error_description = str(e)
-                if doc.status == "Error":
-                    doc.status = "RetryError"
-                else:
+                if not result:
+                    doc = frappe.get_doc("BankTransaction", input_transaction.name)
                     doc.status = "Error"
-                doc.save()
+                    doc.save()
+                    continue
                 
-            processed += 1
+                tx_details = json.loads(input_transaction.payload)
+            
+
+                save_ai_classification_result(result, input_transaction)
+                
+            
+                created_at_str = tx_details.get("createdAt")  # '2025-05-24T06:24:30.945859Z'
+
+                try:
+                    save_journal_entry(result, created_at_str)
+                    doc = frappe.get_doc("BankTransaction", input_transaction.name)
+                    doc.status = "Processed"
+                    doc.save()
+
+                
+                except Exception as e:
+                    print(f"Error processing transaction {input_transaction.name}: {str(e)}", "AI Accountant")
+                    doc = frappe.get_doc("BankTransaction", input_transaction.name)
+                    doc.error_description = str(e)
+                    if doc.status == "Error":
+                        doc.status = "RetryError"
+                    else:
+                        doc.status = "Error"
+                    doc.save()
+                    
+                processed += 1
+        except Exception as e:
+                processed += 1
+                print(f"Error processing AI result : {str(e)}", "AI Accountant")
 
 
 

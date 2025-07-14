@@ -9,15 +9,15 @@ def get_openai_api_key():
 def log_cost(tokens_in, tokens_out, input="", output="", duration=None, model="gpt-3.5-turbo"):
     """Log the OpenAI usage cost"""
     if model.startswith("gpt-3.5"):
-        in_rate = 0.0000005
-        out_rate = 0.0000015
-    elif model.startswith("gpt-4o-mini"):
-        in_rate = 0.000001
-        out_rate = 0.000003
+        in_rate = 0.0005 / 1000
+        out_rate = 0.0015 / 1000
+    elif model.startswith("gpt-4o"):
+        in_rate = 0.005 / 1000
+        out_rate = 0.015 / 1000
     else:
-        in_rate = 0.000003
-        out_rate = 0.000006
-
+        # fallback for gpt-4-turbo
+        in_rate = 0.01 / 1000
+        out_rate = 0.03 / 1000
     cost = (tokens_in * in_rate) + (tokens_out * out_rate)
     
     
