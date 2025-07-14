@@ -7,4 +7,4 @@ def boot_session(bootinfo):
     # elif frappe.has_role(user, "Accounts User"):
     #     bootinfo["home_page"] = "/desk#List/Journal%20Entry"
     # else:
-    bootinfo["home_page"] = "/app/home"
+    bootinfo["home_page"] = "ai-dashboard"
