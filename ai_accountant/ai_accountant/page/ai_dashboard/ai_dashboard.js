@@ -31,7 +31,7 @@ frappe.pages['ai-dashboard'].on_page_load = function (wrapper) {
 	});
 
 	// Default tab
-	$('.tab-btn[data-tab="cost"]').click();
+	$('.tab-btn[data-tab="status"]').click();
 
 	page.set_primary_action('Refresh', () => {
 		const tab = $('.tab-btn.btn-primary').data('tab');
