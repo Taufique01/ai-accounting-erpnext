@@ -5,6 +5,7 @@ frappe.pages['home'].on_page_load = function(wrapper) {
 		single_column: true
 	});
 
-	frappe.set_route("ai-accountant"); // redirects to /app/ai-accountant
+	window.location.href = "/app/home";
+
 
 }
