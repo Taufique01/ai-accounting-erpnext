@@ -8,10 +8,10 @@ frappe.pages['ai-dashboard'].on_page_load = function (wrapper) {
 	// Manual tab buttons
 	const tab_html = `
 		<div class="btn-group mb-3" role="group">
-			<button class="btn btn-secondary tab-btn" data-tab="cost">Cost Overview</button>
 			<button class="btn btn-secondary tab-btn" data-tab="status">Transaction Status</button>
 			<button class="btn btn-secondary tab-btn" data-tab="ai-accountant">GL Entry Assistant</button>
 			<button class="btn btn-secondary tab-btn" data-tab="chat">Chat</button>
+			<button class="btn btn-secondary tab-btn" data-tab="cost">Cost Overview</button>
 		</div>
 		<div id="ai-tab-content"></div>
 	`;
