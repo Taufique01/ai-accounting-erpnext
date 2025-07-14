@@ -264,8 +264,10 @@ doctype_list = ["AI Accountant Settings"]
 
 website_route_rules = [
     {"from_route": "/ai-dashboard", "to_route": "ai_dashboard"},
-    { "from_route": "/app/home", "to_route": "ai_dashboard"}
+    # { "from_route": "/app/home", "to_route": "ai_dashboard"}
 ]
 
 fixtures = ["Page"]
 
+
+boot_session = "ai_accountant.ai_accountant.boot.boot_session"
