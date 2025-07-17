@@ -1,0 +1,57 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-07-16 17:01:47.999748",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "debit_account",
+  "credit_account",
+  "amount",
+  "memo",
+  "confidence"
+ ],
+ "fields": [
+  {
+   "fieldname": "debit_account",
+   "fieldtype": "Data",
+   "label": "Debit Account"
+  },
+  {
+   "fieldname": "amount",
+   "fieldtype": "Float",
+   "label": "Amount"
+  },
+  {
+   "fieldname": "memo",
+   "fieldtype": "Small Text",
+   "label": "memo"
+  },
+  {
+   "fieldname": "credit_account",
+   "fieldtype": "Data",
+   "label": "Credit Account"
+  },
+  {
+   "fieldname": "confidence",
+   "fieldtype": "Float",
+   "label": "Confidence",
+   "precision": "2"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-07-17 12:50:33.177231",
+ "modified_by": "Administrator",
+ "module": "Ai Accountant",
+ "name": "AI Entry Recommendations",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

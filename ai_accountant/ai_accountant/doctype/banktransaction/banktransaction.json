@@ -19,6 +19,8 @@
   "counterparty_name",
   "kind",
   "note",
+  "transaction_hints_for_ai_accountant",
+  "ai_recommended_entries",
   "dashboard_link"
  ],
  "fields": [
@@ -114,12 +116,23 @@
    "fieldname": "dashboard_link",
    "fieldtype": "Data",
    "label": "Dashboard link"
+  },
+  {
+   "fieldname": "transaction_hints_for_ai_accountant",
+   "fieldtype": "Small Text",
+   "label": "Transaction Hints for AI Accountant"
+  },
+  {
+   "fieldname": "ai_recommended_entries",
+   "fieldtype": "Table",
+   "label": "AI recommended entries",
+   "options": "AI Entry Recommendations"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-07-13 17:45:26.191259",
+ "modified": "2025-07-16 17:11:56.047140",
  "modified_by": "Administrator",
  "module": "Ai Accountant",
  "name": "BankTransaction",

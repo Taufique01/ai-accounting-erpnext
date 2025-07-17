@@ -68,31 +68,37 @@ def prepare_tx_list_for_prompt(status, working_list):
     for tx in working_list:
         parsed = json.loads(tx.payload)
         counterparty = tx.get("counterparty_name", "").strip().upper()
-        vendor_doc = frappe.db.get_value(
-                "VendorMap",
-                {"vendor_name": ["like", counterparty]},
-                ["vendor_name", "debit_account", "credit_account"],
+        counterparty_doc = frappe.db.get_value(
+                "Counter Party",
+                {"name": ["like", counterparty]},
+                ["name", "party_type", "hints"],
                 as_dict=True
             )
+        
+        counterparty_details = ""
+        if counterparty_doc:
+            counterparty_details = {
+                        "name": counterparty_doc.name,
+                        "party_type": counterparty_doc.party_type,
+                        "hints_for_ai_accountant": counterparty_doc.hints
+                    }
             
-        vendor = ""
-        if vendor_doc:
-            vendor = f"Vendor: {vendor.vendor_name}. Credit: {vendor.credit_account}. Debit: {vendor.debit_account}"
-
         if status == "Error":
             temp = {
                     "name":tx.name,
-                    "previous_classification_query_result": tx.ai_result,
+                    "previous_classification_query_result": tx.ai_recommended_entries,
                     "gl_entry_error": tx.error_description,
                     "transaction": parsed,
-                    "vendor": vendor
+                    "transaction_hints_for_ai_accountant": tx.transaction_hints_for_ai_accountant,
+                    "counterParty": counterparty_details
                 }
             tx_list.append(temp)
         else:
             tx_list.append({
                     "name":tx.name,
+                    "transaction_hints_for_ai_accountant": tx.transaction_hints_for_ai_accountant,
                     'transaction': parsed,
-                    "vendor": vendor
+                     "counterParty": counterparty_details
                 })
             
     return tx_list

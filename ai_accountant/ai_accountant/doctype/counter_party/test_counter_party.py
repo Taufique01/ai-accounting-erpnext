@@ -12,18 +12,18 @@ EXTRA_TEST_RECORD_DEPENDENCIES = []  # eg. ["User"]
 IGNORE_TEST_RECORD_DEPENDENCIES = []  # eg. ["User"]
 
 
-class UnitTestVendorMap(UnitTestCase):
+class UnitTestCounterParty(UnitTestCase):
 	"""
-	Unit tests for VendorMap.
+	Unit tests for CounterParty.
 	Use this class for testing individual functions and methods.
 	"""
 
 	pass
 
 
-class IntegrationTestVendorMap(IntegrationTestCase):
+class IntegrationTestCounterParty(IntegrationTestCase):
 	"""
-	Integration tests for VendorMap.
+	Integration tests for CounterParty.
 	Use this class for testing interactions between multiple components.
 	"""
 

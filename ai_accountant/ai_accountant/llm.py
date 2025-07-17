@@ -186,17 +186,23 @@ def classify_transaction(tx_list, status="Pending"):
 
 
 def save_ai_classification_result(result, input_transaction):
-    beautify_results = ""
-    for entry in result.get("entries", []):
-        print(entry)
-        memo = "Memo: " + (entry.get("memo", "") or "") +"\n"
-        debit = "Debit: " + entry.get("debit_account") + " -- " + str(entry.get("amount")) + "\n"
-        credit = "Credit: " + entry.get("credit_account") + " -- " + str(entry.get("amount")) + "\n"
-                
-        beautify_results = memo + debit + credit + "\n"
-                
     tx_doc = frappe.get_doc("BankTransaction", input_transaction.name)
-    tx_doc.ai_result = beautify_results
+    for entry in result.get("entries", []):
+        print("***************",entry)
+        memo = entry.get("memo", "")
+        debit =  entry.get("debit_account")
+        credit =  entry.get("credit_account")
+        amount = entry.get("amount")
+        confidence = entry.get("confidence", 0)
+                
+        tx_doc.append("ai_recommended_entries", {
+            "debit_account": debit,
+            "credit_account": credit,
+            "memo": memo,
+            "amount": amount,
+            "confidence": confidence
+        })
+        
     tx_doc.save()
 
 def get_party_info(account, counterparty):
@@ -269,12 +275,15 @@ def classify_batch(status="Pending"):
     limit = frappe.db.get_single_value('LLMSettings', 'limit')
     batch_size = frappe.db.get_single_value('LLMSettings', 'batch_size')
     
-    transactions = frappe.get_all(
+    tnxs = frappe.get_all(
         "BankTransaction",
         filters={"status": status},
-        fields=["name", "payload", "error_description", "ai_result"],
+        fields=["name", "payload", "error_description", "transaction_hints_for_ai_accountant"],
         limit = limit
     )
+    
+    transactions = [frappe.get_doc("BankTransaction", tx.name) for tx in tnxs]
+
     
     if not transactions:
         return "No pending transactions found"
@@ -293,8 +302,8 @@ def classify_batch(status="Pending"):
         
         tx_map = {tx.name: tx for tx in working_list}
 
-        try:
-            for result in results:
+        # try:
+        for result in results:
                 input_transaction  = tx_map.get(result['name'])
                 if not input_transaction:
                     print(f"Transaction {result['name']} not found in working_list")
@@ -332,9 +341,9 @@ def classify_batch(status="Pending"):
                     doc.save()
                     
                 processed += 1
-        except Exception as e:
-                processed += 1
-                print(f"Error processing AI result : {str(e)}", "AI Accountant")
+        # except Exception as e:
+        #         processed += 1
+        #         print(f"Error processing AI result : {str(e)}", "AI Accountant")
 
 
 
