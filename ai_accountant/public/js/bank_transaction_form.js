@@ -7,7 +7,7 @@ frappe.ui.form.on('BankTransaction', {
                 // Use values from the BankTransaction form
                 const posting_date = frm.doc.transaction_date || frappe.datetime.nowdate();
                 const company = frappe.defaults.get_default("Company");
-                const companyAbbr = company==="Taufique company (Demo)"? "TCD": "MSB";
+                const companyAbbr = company==="Taufique company (Demo)"? "TCD": "MSBL";
             
                 je.posting_date = posting_date;
                 je.company = company;

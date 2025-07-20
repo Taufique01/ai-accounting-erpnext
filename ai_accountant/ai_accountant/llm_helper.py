@@ -82,11 +82,12 @@ def prepare_tx_list_for_prompt(status, working_list):
                         "party_type": counterparty_doc.party_type,
                         "hints_for_ai_accountant": counterparty_doc.hints
                     }
-            
+        
         if status == "Error":
+            prev_classification_results = format_entries(tx)
             temp = {
                     "name":tx.name,
-                    "previous_classification_query_result": tx.ai_recommended_entries,
+                    "previous_classification_query_result": prev_classification_results,
                     "gl_entry_error": tx.error_description,
                     "transaction": parsed,
                     "transaction_hints_for_ai_accountant": tx.transaction_hints_for_ai_accountant,
@@ -102,4 +103,7 @@ def prepare_tx_list_for_prompt(status, working_list):
                 })
             
     return tx_list
+
+def format_entries(tx):
+    return [{"debit account": entry.get("debit_account"), "credit account": entry.get("credit_account"), "amount": entry.get("amount"), "confidence":entry.get("confidence"), "memo":entry.get("memo")} for entry in tx.ai_recommended_entries ]
 

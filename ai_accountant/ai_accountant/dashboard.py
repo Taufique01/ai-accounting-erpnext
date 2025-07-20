@@ -97,7 +97,6 @@ def fetch_transaction_data():
             doc = frappe.get_doc({
                 "doctype": "BankTransaction",
             })
-            print(tx)
             
             doc.external_id = tx["id"]
             doc.payload = json.dumps(tx)
