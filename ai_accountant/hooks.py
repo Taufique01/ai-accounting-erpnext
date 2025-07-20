@@ -271,3 +271,8 @@ fixtures = ["Page"]
 
 
 boot_session = "ai_accountant.ai_accountant.boot.boot_session"
+
+doctype_js = {
+    "BankTransaction": "public/js/bank_transaction_form.js",
+    "Journal Entry":"public/js/journal_entry.js"
+}
