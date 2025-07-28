@@ -72,7 +72,7 @@ def fetch_transaction_data():
     
     for id in account_ids:
         
-        url = f"https://api.mercury.com/api/v1/account/{id}/transactions?limit=100&offset=0&order=desc&start={last_fetched_time_formatted}"
+        url = f"https://api.mercury.com/api/v1/account/{id}/transactions?limit=100&offset=0&order=desc&start={last_fetched_time_formatted}&status=sent"
 
         # Call the Mercury API
         try:
