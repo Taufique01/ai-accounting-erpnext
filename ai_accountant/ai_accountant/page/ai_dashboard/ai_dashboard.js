@@ -53,7 +53,7 @@ frappe.pages['ai-dashboard'].on_page_load = function (wrapper) {
 		
 	});
 
-	page.add_action_item('Process Transactions', () => {
+	page.add_action_item('Classify Transactions', () => {
 		
 		frappe.call({
 			method: 'ai_accountant.ai_accountant.batch.process_all_pending',
