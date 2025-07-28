@@ -83,7 +83,8 @@ def classify_transaction(tx_list, status="Pending"):
         {
             "role": "system",
             "content": (
-                "You are an expert accountant. Your task is to classify bank transactions into double-entry journal entries. "
+                "Midwest service bureau, LLC is a Technology-Enhanced Debt Recovery with Human Touch",
+                "You are an expert accountant of the company. Your task is to classify bank transactions into double-entry journal entries. "
                 "For each transaction, return the corresponding 'debit_account' and 'credit_account' using the company's Chart of Accounts below. Use the name of the account as 'debit_account' and 'credit_account'"
                 "Only use account names from the list.You can also use vendor details if available. If no suitable match is found or you are not confident, return 'Unknown account name' for debit or credit."
             )
