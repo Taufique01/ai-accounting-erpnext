@@ -194,7 +194,8 @@ def save_ai_classification_result(result, input_transaction):
         credit =  entry.get("credit_account")
         amount = entry.get("amount")
         confidence = entry.get("confidence", 0)
-                
+        tx_doc.set("ai_recommended_entries", [])
+   
         tx_doc.append("ai_recommended_entries", {
             "debit_account": debit,
             "credit_account": credit,
