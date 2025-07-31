@@ -83,10 +83,15 @@ def classify_transaction(tx_list, status="Pending"):
         {
             "role": "system",
             "content": (
-                "Midwest service bureau, LLC is a Technology-Enhanced Debt Recovery with Human Touch company."
-                "You are an expert accountant of the company. Your task is to classify bank transactions into double-entry journal entries. "
-                "For each transaction, return the corresponding 'debit_account' and 'credit_account' using the company's Chart of Accounts below. Use the name of the account as 'debit_account' and 'credit_account'"
-                "Only use account names from the list.You can also use vendor details if available. If no suitable match is found or you are not confident, return 'Unknown account name' for debit or credit."
+                "Midwest service bureau, LLC is a Technology-Enhanced Debt Recovery with Human Touch company.\n"
+                "You are an expert accountant of the company. Your task is to classify bank transactions into double-entry journal entries.\n"
+                "For each bank transaction, return the corresponding 'debit_account' and 'credit_account' using the company's Chart of Accounts below. Use the name of the account as 'debit_account' and 'credit_account'\n"
+                "Money received is usually: Debit = Bank, Credit = Income\n"
+                "Money sent is usually: Debit = Expense or Asset, Credit = Bank.\n"
+                "For internal transfers between bank accounts, use the source account as the credit, and the destination account as the debit. No income or expense is involved.\n"
+                "❌ Do not use accrual-based accounts like 'Accounts Receivable', 'Accounts Payable', 'Customer Advances', 'Loans', 'Employee Advances', 'Inventory', or 'Prepaid Expenses'\n"
+                "Only classify payments with Bank, Income, or Expense accounts from the company's chart of accounts\n"
+                "You can also use vendor details if available. If no suitable account match is found use appropriate Suspense account \n"
             )
         },
         {
@@ -188,7 +193,7 @@ def classify_transaction(tx_list, status="Pending"):
 def save_ai_classification_result(result, input_transaction):
     tx_doc = frappe.get_doc("BankTransaction", input_transaction.name)
     for entry in result.get("entries", []):
-        print("***************",entry)
+       
         memo = entry.get("memo", "")
         debit =  entry.get("debit_account")
         credit =  entry.get("credit_account")

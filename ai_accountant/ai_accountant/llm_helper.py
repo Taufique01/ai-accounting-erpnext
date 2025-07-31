@@ -46,7 +46,8 @@ def format_accounts_for_prompt():
     accounts = frappe.get_all(
         "Account",
         fields=["name", "account_type", "parent_account"],
-        filters={"company": company_name, "is_group": 0,  "name": ["not like", "%Suspense%"]},
+        filters={"company": company_name, "is_group": 0, "root_type": ["in", ["Asset", "Income", "Expense"]],
+},
         order_by="name"
     )
     
