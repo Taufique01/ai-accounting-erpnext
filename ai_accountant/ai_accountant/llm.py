@@ -91,7 +91,7 @@ def classify_transaction(tx_list, status="Pending"):
                 "For internal transfers between bank accounts, use the source account as the credit, and the destination account as the debit. No income or expense is involved.\n"
                 "❌ Do not use accrual-based accounts like 'Accounts Receivable', 'Accounts Payable', 'Customer Advances', 'Loans', 'Employee Advances', 'Inventory', or 'Prepaid Expenses'\n"
                 "Only classify payments with Bank, Income, or Expense accounts from the company's chart of accounts\n"
-                "You can also use vendor details if available. If no suitable account match is found use appropriate Suspense account \n"
+                "You can also use vendor details if available. If no suitable account match is found, then use appropriate Suspense account \n"
             )
         },
         {
@@ -156,33 +156,6 @@ def classify_transaction(tx_list, status="Pending"):
             model=model
         )
         
-        # for result in results:
-
-        #     # Retry with GPT-4o-mini if confidence is low
-        #     if any(entry.get("confidence", 1.0) < 0.8 for entry in result.get("entries", [])):
-        #         response = client.chat.completions.create(
-        #             model="gpt-4o",
-        #             functions=[journal_schema],
-        #             function_call={"name": "post_journal"},
-        #             messages=prompt,
-        #             max_tokens=1800
-        #         )
-
-        #         log_cost(
-        #             tokens_in=response.usage.prompt_tokens,
-        #             tokens_out=response.usage.completion_tokens,
-        #             model="gpt-4o"
-        #         )
-
-        #         result = json.loads(response.choices[0].message.function_call.arguments)
-
-        #     # Save to vendor map
-        #     for entry in result.get("entries", []):
-        #         if merchant:
-        #             account = entry.get("debit_account") if amount > 0 else entry.get("credit_account")
-        #             if account != "Bank Account":
-        #                 update_vendor_map(merchant, account)
-
         return results["results"]
 
     except Exception as e:
@@ -223,15 +196,18 @@ def get_party_info(account, counterparty):
     return None
 
 
-def save_journal_entry(result, created_at_str):
+def save_journal_entry(result, tx_created_at_str, kind):
     
-    # Remove the trailing Z and parse datetime
-    created_at_str = created_at_str.rstrip('Z')
-    dt = datetime.fromisoformat(created_at_str)
-    # Extract date only in YYYY-MM-DD format
-    posting_date = dt.date().isoformat()  # '2025-05-24'
-    
+    # Step 1: Clean the Zulu time indicator
+    tx_created_at_str = tx_created_at_str.rstrip('Z')
 
+    # Step 2: Parse the reference date (original transaction date)
+    reference_date = datetime.fromisoformat(tx_created_at_str).date().isoformat()  # e.g. '2025-05-24'
+
+    # Step 3: Create a new posting date with current datetime
+    posting_date = datetime.now().date().isoformat()  # e.g. '2025-08-01'
+
+    tx_name = result.get("name") 
         
     for entry in result.get("entries", []):
         
@@ -242,9 +218,10 @@ def save_journal_entry(result, created_at_str):
         memo = entry.get("memo", "")
         counterparty = entry.get("counterparty", "")
         confidence = entry.get("confidence")
-        
+
         if confidence < .75:
             raise ValueError(f"Classification confidence is very less {confidence}")
+        
 
             
         # Get party info for debit and credit accounts
@@ -274,11 +251,13 @@ def save_journal_entry(result, created_at_str):
             "doctype": "Journal Entry",
             "posting_date": posting_date,
             "user_remark": memo,
+            "cheque_no": tx_name,
+            "cheque_date": reference_date,
             "accounts": [debit_line, credit_line]
         })
         je.insert()
         je.submit()
-    
+
 
 def classify_batch(status="Pending"):
     """Process a batch of pending transactions"""
@@ -294,6 +273,9 @@ def classify_batch(status="Pending"):
     )
     
     
+    
+    
+    
     transactions = [frappe.get_doc("BankTransaction", tx.name) for tx in tnxs]
 
     
@@ -307,6 +289,8 @@ def classify_batch(status="Pending"):
         notify_progress(processed, total_transactions)
         
         working_list = transactions[i:i+batch_size]
+        
+        
         
         tx_list = prepare_tx_list_for_prompt(status, working_list)
             
@@ -332,11 +316,12 @@ def classify_batch(status="Pending"):
 
                     save_ai_classification_result(result, input_transaction)
                     
-                
+                    kind = input_transaction.kind
+
                     created_at_str = tx_details.get("createdAt")  # '2025-05-24T06:24:30.945859Z'
 
                     try:
-                        save_journal_entry(result, created_at_str)
+                        save_journal_entry(result, created_at_str, kind)
                         doc = frappe.get_doc("BankTransaction", input_transaction.name)
                         doc.status = "Processed"
                         doc.save()

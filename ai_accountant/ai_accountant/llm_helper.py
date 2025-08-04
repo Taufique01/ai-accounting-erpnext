@@ -45,7 +45,7 @@ def format_accounts_for_prompt():
 
     accounts = frappe.get_all(
         "Account",
-        fields=["name", "account_type", "parent_account"],
+        fields=["name", "account_type", "parent_account", "root_type"],
         filters={"company": company_name, "is_group": 0, "root_type": ["in", ["Asset", "Income", "Expense"]],
 },
         order_by="name"
@@ -56,10 +56,11 @@ def format_accounts_for_prompt():
         # Example: "Cash - TC (Asset > Current Assets), Type: Cash"
         line = (
             f"name: {acc['name']}, "
-            f"account_type: {acc['account_type']}, "
+            f"account_type: {acc['root_type']}, "
             f"parent_account: {acc['parent_account']}"
         )
         lines.append(line)
+    print(lines)
     return "\n".join(lines)
 
 
@@ -99,8 +100,8 @@ def prepare_tx_list_for_prompt(status, working_list):
             tx_list.append({
                     "name":tx.name,
                     "transaction_hints_for_ai_accountant": tx.transaction_hints_for_ai_accountant,
-                    'transaction': parsed,
-                     "counterParty": counterparty_details
+                    "transaction": parsed,
+                    "counterParty": counterparty_details
                 })
             
     return tx_list

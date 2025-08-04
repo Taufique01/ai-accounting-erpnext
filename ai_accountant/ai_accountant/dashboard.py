@@ -20,9 +20,9 @@ def get_mercury_account_ids():
         
         response.raise_for_status()  # Raise exception for HTTP errors
         data = response.json()
-
-        account_ids = [account["id"] for account in data.get("accounts", [])]
-        return account_ids
+        
+        accounts = [{"id": account["id"], "name": account["name"], "nickname": account["nickname"]} for account in data.get("accounts", [])]
+        return accounts
 
     except requests.exceptions.RequestException as e:
         print(f"HTTP Request failed: {e}")
@@ -52,9 +52,9 @@ def fetch_transaction_data():
     }
     
 
-    account_ids = get_mercury_account_ids()
+    accounts = get_mercury_account_ids()
     
-    if not account_ids:
+    if not accounts:
          return {"status": "success", "message": "No accounts to fetch transactions."}
     
     frappe.publish_realtime(event="transaction_sync_update", message={
@@ -65,14 +65,14 @@ def fetch_transaction_data():
     
     total_transactions = 0
     progress = 1
-    last_fetched_time = frappe.db.get_single_value('BankTransactionInfo', 'last_fetched_time')
-    frappe.db.set_value("BankTransactionInfo", None, "last_fetched_time", datetime.now())
+    fetching_from = frappe.db.get_single_value('BankTransactionInfo', 'last_fetched_time')
+    # frappe.db.set_value("BankTransactionInfo", None, "last_fetched_time", datetime.now())
 
-    last_fetched_time_formatted = quote(last_fetched_time.isoformat()+ "Z")
+    fetching_from_formatted = quote(fetching_from.isoformat()+ "Z")
     
-    for id in account_ids:
-        
-        url = f"https://api.mercury.com/api/v1/account/{id}/transactions?limit=100&offset=0&order=desc&start={last_fetched_time_formatted}&status=sent"
+    for account in accounts:
+        id = account["id"]
+        url = f"https://api.mercury.com/api/v1/account/{id}/transactions?limit=100&offset=0&order=desc&start={fetching_from_formatted}&status=sent"
 
         # Call the Mercury API
         try:
@@ -102,6 +102,8 @@ def fetch_transaction_data():
             doc.payload = json.dumps(tx)
             doc.processed_hash = tx_hash
             doc.status = "Pending"
+            doc.our_account_name = account["name"]
+            doc.our_account_nickname = account["nickname"]
             
             doc.amount = tx.get("amount", 0.0)
             doc.transaction_date =  datetime.fromisoformat(tx.get("createdAt").rstrip('Z'))
@@ -119,11 +121,11 @@ def fetch_transaction_data():
         
         frappe.publish_realtime(event="transaction_sync_update", message={
             "is_completed": False,
-            "percent": 10 + 90*progress/len(account_ids),
+            "percent": 10 + 90*progress/len(accounts),
             "message": "Fetching transactions..."
         })
             
-    response_meg = str(total_transactions) + " Transactions synced from " + str(len(account_ids)) + " accounts."
+    response_meg = str(total_transactions) + " Transactions synced from " + str(len(accounts)) + " accounts."
     
     frappe.publish_realtime(event="transaction_sync_update", message={
         "is_completed": True,

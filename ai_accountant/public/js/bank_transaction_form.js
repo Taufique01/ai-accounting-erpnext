@@ -19,11 +19,11 @@ frappe.ui.form.on('BankTransaction', {
                     const entry = frm.doc.ai_recommended_entries[i];                    
                     // Use BankTransaction details for journal entry lines
                     const debit_row = frappe.model.add_child(je, 'Journal Entry Account', 'accounts');
-                    debit_row.account = entry.debit_account==="Unknown account name"?`Suspense (Receipts) - ${companyAbbr}`: entry.debit_account;
+                    debit_row.account = entry.debit_account==="Unknown account name"?`Suspense (Income) - ${companyAbbr}`: entry.debit_account;
                     debit_row.debit_in_account_currency = entry.amount || 0;
                     
                     const credit_row = frappe.model.add_child(je, 'Journal Entry Account', 'accounts');
-                    credit_row.account = entry.credit_account==="Unknown account name"?`Suspense (Payments) - ${companyAbbr}`: entry.credit_account;
+                    credit_row.account = entry.credit_account==="Unknown account name"?`Suspense (Expense) - ${companyAbbr}`: entry.credit_account;
                     credit_row.credit_in_account_currency = entry.amount || 0;
                     
                     je.user_remark = entry.memo + "\n" + "transaction name: "+ frm.doc.name;

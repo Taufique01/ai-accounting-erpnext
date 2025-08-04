@@ -6,21 +6,23 @@
  "engine": "InnoDB",
  "field_order": [
   "external_id",
-  "payload",
   "processed_hash",
   "status",
-  "ai_result",
-  "error_description",
   "transaction_date",
   "amount",
   "currency",
   "transaction_status",
   "bank_description",
   "counterparty_name",
+  "our_account_name",
+  "our_account_nickname",
   "kind",
   "note",
+  "ai_result",
+  "error_description",
   "transaction_hints_for_ai_accountant",
   "ai_recommended_entries",
+  "payload",
   "dashboard_link"
  ],
  "fields": [
@@ -127,12 +129,22 @@
    "fieldtype": "Table",
    "label": "AI recommended entries",
    "options": "AI Entry Recommendations"
+  },
+  {
+   "fieldname": "our_account_name",
+   "fieldtype": "Data",
+   "label": "Our account name"
+  },
+  {
+   "fieldname": "our_account_nickname",
+   "fieldtype": "Data",
+   "label": "Our account nickname"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-07-16 17:11:56.047140",
+ "modified": "2025-08-01 20:08:08.250311",
  "modified_by": "Administrator",
  "module": "Ai Accountant",
  "name": "BankTransaction",

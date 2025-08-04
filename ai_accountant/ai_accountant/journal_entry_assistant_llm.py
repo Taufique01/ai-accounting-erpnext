@@ -2,7 +2,7 @@ import frappe
 import json
 from openai import OpenAI
 from datetime import datetime
-from ai_accountant.ai_accountant.llm_helper import get_openai_api_key, log_cost, format_accounts_for_prompt
+from ai_accountant.ai_accountant.llm_helper import get_openai_api_key, log_cost
 
 
 journal_schema = {
@@ -43,6 +43,29 @@ journal_schema = {
 }
 
 
+def format_accounts_for_prompt():
+    company_name = frappe.db.get_single_value('BankTransactionInfo', 'company_name')
+
+    accounts = frappe.get_all(
+        "Account",
+        fields=["name", "account_type", "parent_account"],
+        filters={"company": company_name, "is_group": 0,
+    },
+        order_by="name"
+    )
+    
+    lines = []
+    for acc in accounts:
+        # Example: "Cash - TC (Asset > Current Assets), Type: Cash"
+        line = (
+            f"name: {acc['name']}, "
+            f"account_type: {acc['account_type']}, "
+            f"parent_account: {acc['parent_account']}"
+        )
+        lines.append(line)
+    return "\n".join(lines)
+
+
 def classify_transaction(text_list):
     """Classify multiple natural language transaction texts using OpenAI"""
     
@@ -54,8 +77,10 @@ def classify_transaction(text_list):
     prompt = [
         {
             "role": "system",
-            "content": "You are an expert accountant. Find out how many transactions has been made form user input. And classify each transaction into debit and credit journal entries using the company's Chart of Accounts. For unknown accounts, use 'Unknown account name'. And return journal entries for each transactions."
-        },
+            "content": ("Midwest service bureau, LLC is a Technology-Enhanced Debt Recovery with Human Touch company.\n"
+            "You are an expert accountant of the company.\n"
+            "Find out how many transactions/journal entry events is there form user input. And classify each into debit and credit journal entries using the company's Chart of Accounts. For unknown accounts, use 'Unknown account name'. And return journal entries for each.\n"
+      )  },
         {
             "role": "system",
             "content": f"Company's Chart of Accounts:\n{accounts_text}"
@@ -80,8 +105,7 @@ def classify_transaction(text_list):
                 "function": journal_schema
             }],
             tool_choice={"type": "function", "function": {"name": "post_journal"}},
-            messages=prompt,
-            max_tokens=2000
+            messages=prompt
         )
         
         
