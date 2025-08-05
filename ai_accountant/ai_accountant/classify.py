@@ -358,7 +358,7 @@ def classify_msb_workers_comp(transactions):
                     "debit_account": accounting_name(Account.MSB_WORKER_COMPENSATION),
                     "credit_account": accounting_name(cp),
                     "amount": tnx.amount,
-                    "memo": f"Transfer from {cp.value} to Workers Comp",
+                    "memo": f"Transfer from {cp} to Workers Comp",
                     "confidence": 1
                 })
 
@@ -390,7 +390,7 @@ def classify_msb_workers_comp(transactions):
                     "debit_account": accounting_name(cp),
                     "credit_account": accounting_name(Account.MSB_WORKER_COMPENSATION),
                     "amount": abs(tnx.amount),
-                    "memo": f"Transfer from Workers Comp to {cp.value}",
+                    "memo": f"Transfer from Workers Comp to {cp}",
                     "confidence": 1
                 })
 
