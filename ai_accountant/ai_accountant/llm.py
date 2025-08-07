@@ -4,7 +4,7 @@ from openai import OpenAI
 from datetime import datetime
 from ai_accountant.ai_accountant.realtime_utils import notify_progress
 from ai_accountant.ai_accountant.llm_helper import get_openai_api_key, log_cost, format_accounts_for_prompt, prepare_tx_list_for_prompt
-
+from ai_accountant.ai_accountant.classify import classify_msb_trust, classify_msb_operating, classify_msb_payroll, classify_msb_ars, classify_msb_workers_comp
 # Define OpenAI function calling schema
 journal_schema = {
     "name": "post_journal",
@@ -196,7 +196,7 @@ def get_party_info(account, counterparty):
     return None
 
 
-def save_journal_entry(result, tx_created_at_str, kind):
+def save_journal_entry(result, tx_created_at_str):
     
     # Step 1: Clean the Zulu time indicator
     tx_created_at_str = tx_created_at_str.rstrip('Z')
@@ -210,7 +210,6 @@ def save_journal_entry(result, tx_created_at_str, kind):
     tx_name = result.get("name") 
         
     for entry in result.get("entries", []):
-        
         
         debit_account = entry.get("debit_account")
         credit_account = entry.get("credit_account")
@@ -262,90 +261,92 @@ def save_journal_entry(result, tx_created_at_str, kind):
 def classify_batch(status="Pending"):
     """Process a batch of pending transactions"""
     print("I am in classifying batch")
-    limit = frappe.db.get_single_value('LLMSettings', 'limit')
-    batch_size = frappe.db.get_single_value('LLMSettings', 'batch_size')
-    
-    tnxs = frappe.get_all(
-        "BankTransaction",
-        filters={"status": status, "transaction_status": "sent"},
-        fields=["name"],
-        limit = limit
-    )
-    
-    
-    
-    
-    
-    transactions = [frappe.get_doc("BankTransaction", tx.name) for tx in tnxs]
-
-    
-    if not transactions:
-        return "No pending transactions found"
 
     processed = 0
-    total_transactions = len(transactions)
+    total_transactions = 500
     
-    for i in range(0, total_transactions, batch_size):
-        notify_progress(processed, total_transactions)
-        
-        working_list = transactions[i:i+batch_size]
-        
-        
-        
-        tx_list = prepare_tx_list_for_prompt(status, working_list)
+    notify_progress(processed, total_transactions)
+    
+    # tx_list = prepare_tx_list_for_prompt(status, working_list)
+    # results = classify_transaction(tx_list, status)
+    
+    results, transactions = classify_msb_trust()
+    print(results, transactions)
+    tx_map = {tx.name: tx for tx in transactions}
+    trust_processed = save_results_in_gl_entry(results, tx_map)
+    notify_progress(trust_processed, total_transactions)
+
+    results, transactions = classify_msb_ars()
+    tx_map = {tx.name: tx for tx in transactions}
+    save_results_in_gl_entry(results, tx_map)
+    
+
+    results, transactions = classify_msb_workers_comp()
+    tx_map = {tx.name: tx for tx in transactions}
+    save_results_in_gl_entry(results, tx_map)
+    
+    
+    results, transactions = classify_msb_operating()
+    tx_map = {tx.name: tx for tx in transactions}
+    operating_processed = save_results_in_gl_entry(results, tx_map)
+    notify_progress(0+operating_processed, total_transactions)
             
-        results = classify_transaction(tx_list, status)
-        
-        tx_map = {tx.name: tx for tx in working_list}
 
-        try:
-            for result in results:
-                    input_transaction  = tx_map.get(result['name'])
-                    if not input_transaction:
-                        print(f"Transaction {result['name']} not found in working_list")
-                        continue
-
-                    if not result:
-                        doc = frappe.get_doc("BankTransaction", input_transaction.name)
-                        doc.status = "Error"
-                        doc.save()
-                        continue
-                    
-                    tx_details = json.loads(input_transaction.payload)
-                
-
-                    save_ai_classification_result(result, input_transaction)
-                    
-                    kind = input_transaction.kind
-
-                    created_at_str = tx_details.get("createdAt")  # '2025-05-24T06:24:30.945859Z'
-
-                    try:
-                        save_journal_entry(result, created_at_str, kind)
-                        doc = frappe.get_doc("BankTransaction", input_transaction.name)
-                        doc.status = "Processed"
-                        doc.save()
-
-                    
-                    except Exception as e:
-                        print(f"Error processing transaction {input_transaction.name}: {str(e)}", "AI Accountant")
-                        doc = frappe.get_doc("BankTransaction", input_transaction.name)
-                        doc.error_description = str(e)
-                        if doc.status == "Error":
-                            doc.status = "RetryError"
-                        else:
-                            doc.status = "Error"
-                        doc.save()
-                        
-                    processed += 1
-        except Exception as e:
-                processed += 1
-                print(f"Error processing AI result : {str(e)}", "AI Accountant")
-
+    results, transactions = classify_msb_payroll()
+    tx_map = {tx.name: tx for tx in transactions}
+    payroll_processed = save_results_in_gl_entry(results, tx_map)
+    notify_progress(0+0+payroll_processed, total_transactions)
 
 
 
     notify_progress(total_transactions, total_transactions)
 
     return f"Processed {processed} transactions"
+
+def save_results_in_gl_entry(results, tx_map):
+    processed = 0
+    try:
+        for result in results:
+                input_transaction  = tx_map.get(result['name'])
+                if not input_transaction:
+                    print(f"Transaction {result['name']} not found in working_list")
+                    continue
+
+                if not result:
+                    doc = frappe.get_doc("BankTransaction", input_transaction.name)
+                    doc.status = "Error"
+                    doc.save()
+                    continue
+                    
+                tx_details = json.loads(input_transaction.payload)
+                
+
+                save_ai_classification_result(result, input_transaction)
+                    
+
+                created_at_str = tx_details.get("createdAt")  # '2025-05-24T06:24:30.945859Z'
+
+                try:
+                    print("____________", result)
+                    save_journal_entry(result, created_at_str)
+                    doc = frappe.get_doc("BankTransaction", input_transaction.name)
+                    doc.status = "Processed"
+                    doc.save()
+
+                    
+                except Exception as e:
+                    print(f"Error processing transaction {input_transaction.name}: {str(e)}", "AI Accountant")
+                    doc = frappe.get_doc("BankTransaction", input_transaction.name)
+                    doc.error_description = str(e)
+                    if doc.status == "Error":
+                        doc.status = "RetryError"
+                    else:
+                        doc.status = "Error"
+                    doc.save()
+                        
+                processed += 1
+    except Exception as e:
+            processed += 1
+            print(f"Error processing AI result : {str(e)}", "AI Accountant")
+    return processed
 

@@ -6,7 +6,7 @@
  "engine": "InnoDB",
  "field_order": [
   "external_id",
-  "processed_hash",
+  "transaction_hash",
   "status",
   "transaction_date",
   "amount",
@@ -14,6 +14,7 @@
   "transaction_status",
   "bank_description",
   "counterparty_name",
+  "counterparty_nickname",
   "our_account_name",
   "our_account_nickname",
   "kind",
@@ -38,13 +39,6 @@
    "fieldtype": "JSON",
    "in_list_view": 1,
    "label": "payload",
-   "reqd": 1
-  },
-  {
-   "fieldname": "processed_hash",
-   "fieldtype": "Data",
-   "in_list_view": 1,
-   "label": "processed_hash",
    "reqd": 1
   },
   {
@@ -139,12 +133,23 @@
    "fieldname": "our_account_nickname",
    "fieldtype": "Data",
    "label": "Our account nickname"
+  },
+  {
+   "fieldname": "counterparty_nickname",
+   "fieldtype": "Data",
+   "label": "Counter party nickname"
+  },
+  {
+   "fieldname": "transaction_hash",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Transaction hash"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-08-01 20:08:08.250311",
+ "modified": "2025-08-06 11:55:32.766474",
  "modified_by": "Administrator",
  "module": "Ai Accountant",
  "name": "BankTransaction",

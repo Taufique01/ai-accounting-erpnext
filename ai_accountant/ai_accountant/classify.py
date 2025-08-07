@@ -1,5 +1,5 @@
 from enum import Enum
-
+import frappe
 
 
 class Account:
@@ -12,17 +12,35 @@ class Account:
 def accounting_name(ant):
     return f"{ant} - MSBL"
 
-ACC_NAME_REV_COLLECTION_FEE = "Collection Revenue"
-ACC_NAME_CLIENT_PAYABLE = "Client Funds Payable"
+def get_transaction(account_name):
+    limit = frappe.db.get_single_value('LLMSettings', 'limit')
+    
+    tnxs = frappe.get_all(
+        "BankTransaction",
+        filters={"status": "Pending", "transaction_status": "sent", "our_account_nickname": account_name},
+        fields=["name"],
+        limit = 500
+    )
+    
+    transactions = [frappe.get_doc("BankTransaction", tx.name) for tx in tnxs]
+    return transactions
 
-def classify_msb_trust(transactions):
+
+ACC_NAME_REV_COLLECTION_FEE = "Collection Revenue - MSBL"
+ACC_NAME_CLIENT_PAYABLE = "Funds Held in Trust - MSBL"
+
+def classify_msb_trust():
+    
+    transactions = get_transaction(Account.MSB_TRUST)
+    print(transactions)
     results = []
 
     for tnx in transactions:
+        print("tnx")
         entries = []
         amount = abs(tnx.amount)
-        cp = tnx.counterpartyNickname  # assumed to be string like "MSB_OPERATING"
-
+        cp = tnx.counterparty_nickname  # assumed to be string like "MSB_OPERATING"
+       
         if tnx.amount > 0:  # Incoming money
             if tnx.kind == "internalTransfer":
                 # Transfer into MSB Trust
@@ -50,7 +68,7 @@ def classify_msb_trust(transactions):
                     "debit_account": accounting_name(Account.MSB_TRUST),
                     "credit_account": ACC_NAME_CLIENT_PAYABLE,
                     "amount": amount,
-                    "memo": f"Funds received from debtor into Trust account from {tnx.counterpartyName}",
+                    "memo": f"Funds received from debtor into Trust account from {tnx.counterparty_name}",
                     "confidence": 1.0
                 })
 
@@ -81,23 +99,28 @@ def classify_msb_trust(transactions):
                     "debit_account": ACC_NAME_CLIENT_PAYABLE,
                     "credit_account": accounting_name(Account.MSB_TRUST),
                     "amount": amount,
-                    "memo": f"Client payout from Trust to {tnx.counterpartyName}", ## can be refund to payment service
+                    "memo": f"Client payout from Trust to {tnx.counterparty_name}", ## can be refund to payment service
                     "confidence": 1.0
                 })
 
         results.append({"name": tnx.name, "entries":entries})
+    
+    
 
-    return results
+    return results, transactions
 
 
-def classify_msb_operating(transactions):
+
+def classify_msb_operating():
+    transactions = get_transaction(Account.MSB_OPERATING)
+
     results = []
     for tnx in transactions:
-        cp = tnx.counterpartyNickname
+        cp = tnx.counterparty_nickname
         entries = []
         
-        if tnx.counterpartyNickname == Account.MSB_TRUST:
-            continue
+        # if tnx.counterparty_nickname == Account.MSB_TRUST:
+        #     continue
 
         # INFLOW: Money coming into MSB Operating
         if tnx.amount > 0:
@@ -132,7 +155,7 @@ def classify_msb_operating(transactions):
                     "debit_account": accounting_name(Account.MSB_OPERATING),
                     "credit_account": ACC_NAME_REV_COLLECTION_FEE,
                     "amount": tnx.amount,
-                    "memo": f"External deposit into MSB Operating from {tnx.counterpartyName}",
+                    "memo": f"External deposit into MSB Operating from {tnx.counterparty_name}",
                     "confidence": 1  # Lower confidence since purpose may vary
                 })
 
@@ -165,7 +188,7 @@ def classify_msb_operating(transactions):
             else:
                 # External outflow (e.g., operating expense, vendor payment)
                 entries.append({
-                    "debit_account": "Operating Expense", ## need AI to classify what type of expense## may be asset
+                    "debit_account": "Administrative Expenses - MSBL", ## need AI to classify what type of expense## may be asset
                     "credit_account": accounting_name(Account.MSB_OPERATING),
                     "amount": abs(tnx.amount),
                     "memo": "External payment from MSB Operating (e.g., vendor or expense)", ## AI generated
@@ -173,17 +196,19 @@ def classify_msb_operating(transactions):
                 })
 
         results.append({"name": tnx.name, "entries":entries})
-    return results
+    return results, transactions
 
 
-def classify_msb_payroll(transactions):
+def classify_msb_payroll():
+    transactions = get_transaction(Account.MSB_PAYROLL)
+
     results = []
     for tnx in transactions:
         entries = []
-        cp = tnx.counterpartyNickname
+        cp = tnx.counterparty_nickname
         
-        if cp in [Account.MSB_TRUST, Account.MSB_OPERATING]:
-            continue
+        # if cp in [Account.MSB_TRUST, Account.MSB_OPERATING]:
+        #     continue
 
         # INFLOW: Money coming into MSB Payroll
         if tnx.amount > 0:
@@ -217,7 +242,7 @@ def classify_msb_payroll(transactions):
                     "debit_account": accounting_name(Account.MSB_PAYROLL),
                     "credit_account": ACC_NAME_REV_COLLECTION_FEE,
                     "amount": tnx.amount,
-                    "memo": f"External deposit into MSB Payroll from {tnx.counterpartyName}",
+                    "memo": f"External deposit into MSB Payroll from {tnx.counterparty_name}",
                     "confidence": 1
                 })
 
@@ -250,7 +275,7 @@ def classify_msb_payroll(transactions):
             else:
                 # External outflow (e.g., payroll expenses, salary payments)
                 entries.append({
-                    "debit_account": "Payroll Expense",  # Consider AI classification for specific payroll expense types
+                    "debit_account": "Salary - MSBL",  # Consider AI classification for specific payroll expense types
                     "credit_account": accounting_name(Account.MSB_PAYROLL),
                     "amount": abs(tnx.amount),
                     "memo": "External payroll payment from MSB Payroll",
@@ -258,16 +283,18 @@ def classify_msb_payroll(transactions):
                 })
 
         results.append({"name": tnx.name, "entries":entries})
-    return results
+    return results, transactions
 
 
-def classify_msb_ars(transactions):
+def classify_msb_ars():
+    transactions = get_transaction(Account.MSB_ARS)
+
     results = []
     for tnx in transactions:
         
-        cp = tnx.counterpartyNickname
-        if cp in [Account.MSB_TRUST, Account.MSB_OPERATING, Account.MSB_PAYROLL]:
-            continue
+        cp = tnx.counterparty_nickname
+        # if cp in [Account.MSB_TRUST, Account.MSB_OPERATING, Account.MSB_PAYROLL]:
+        #     continue
 
         entries = []
 
@@ -300,7 +327,7 @@ def classify_msb_ars(transactions):
                     "debit_account": accounting_name(Account.MSB_ARS),
                     "credit_account": ACC_NAME_CLIENT_PAYABLE,
                     "amount": tnx.amount,
-                    "memo": f"Client funds received in ARS from {tnx.counterpartyName}",
+                    "memo": f"Client funds received in ARS from {tnx.counterparty_name}",
                     "confidence": 1
                 })
 
@@ -336,17 +363,19 @@ def classify_msb_ars(transactions):
                 })
 
         results.append({"name": tnx.name, "entries":entries})
-    return results
+    return results, transactions
 
 
-def classify_msb_workers_comp(transactions):
+def classify_msb_workers_comp():
+    transactions = get_transaction(Account.MSB_WORKER_COMPENSATION)
+
     results = []
     for tnx in transactions:
-        cp = tnx.counterpartyNickname
+        cp = tnx.counterparty_nickname
 
         
-        if cp in [Account.MSB_TRUST, Account.MSB_OPERATING, Account.MSB_PAYROLL, Account.MSB_ARS]:
-            continue
+        # if cp in [Account.MSB_TRUST, Account.MSB_OPERATING, Account.MSB_PAYROLL, Account.MSB_ARS]:
+        #     continue
 
         entries = []
 
@@ -378,7 +407,7 @@ def classify_msb_workers_comp(transactions):
                     "debit_account": accounting_name(Account.MSB_WORKER_COMPENSATION),
                     "credit_account": ACC_NAME_CLIENT_PAYABLE,
                     "amount": tnx.amount,
-                    "memo": f"External deposit into Workers Comp from {tnx.counterpartyName}",
+                    "memo": f"External deposit into Workers Comp from {tnx.counterparty_name}",
                     "confidence": 1
                 })
 
@@ -410,12 +439,12 @@ def classify_msb_workers_comp(transactions):
                     "debit_account": ACC_NAME_CLIENT_PAYABLE,
                     "credit_account": accounting_name(Account.MSB_WORKER_COMPENSATION),
                     "amount": abs(tnx.amount),
-                    "memo": f"External transfer from Workers Comp to {tnx.counterpartyName}",
+                    "memo": f"External transfer from Workers Comp to {tnx.counterparty_name}",
                     "confidence": 1
                 })
 
         results.append({"name": tnx.name, "entries":entries})
-    return results
+    return results, transactions
 
 
 

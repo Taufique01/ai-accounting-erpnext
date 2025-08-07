@@ -16,12 +16,24 @@ def get_mercury_account_ids():
     }
 
     try:
-        response = requests.get(url, headers=headers)
+        # response = requests.get(url, headers=headers)
         
-        response.raise_for_status()  # Raise exception for HTTP errors
-        data = response.json()
+        # response.raise_for_status()  # Raise exception for HTTP errors
+        # data = response.json()
+        # print(data)
+        # accounts = [{"id": account["id"], "name": account["name"], "nickname": account["nickname"]} for account in data.get("accounts", [])]
         
-        accounts = [{"id": account["id"], "name": account["name"], "nickname": account["nickname"]} for account in data.get("accounts", [])]
+        accounts = [
+            {'id': '784b78d6-bcb7-11ef-90ae-834c86eecca7', 'name': 'Mercury Checking ••2375', 'nickname': 'MSB Trust'},
+            {'id': '108b0060-2426-11ef-a1f2-4f1938f43d9c', 'name': 'Mercury Checking ••7880', 'nickname': 'MSB ARS Account Account'},
+            {'id': '724af66a-0c1b-11f0-912c-df4ab6846cb4', 'name': 'Mercury Checking ••6581', 'nickname': "MSB Worker's Compensation"},
+            {'id': 'fe908086-0e23-11f0-b62f-77a6028d6056', 'name': 'Mercury Checking ••7527', 'nickname': 'MSB Debt Payoff'},
+            {'id': 'd648deca-81dd-11ef-a43f-5f51ae1d8f03', 'name': 'Mercury Checking ••8678', 'nickname': 'MSB Operating'},
+            {'id': '7ffbcf7a-1182-11f0-8665-7b73df768402', 'name': 'Mercury Checking ••4690', 'nickname': 'MSB Payroll'},
+
+
+        ]
+
         return accounts
 
     except requests.exceptions.RequestException as e:
@@ -72,7 +84,7 @@ def fetch_transaction_data():
     
     for account in accounts:
         id = account["id"]
-        url = f"https://api.mercury.com/api/v1/account/{id}/transactions?limit=100&offset=0&order=desc&start={fetching_from_formatted}&status=sent"
+        url = f"https://api.mercury.com/api/v1/account/{id}/transactions?limit=9999&offset=0&start={fetching_from_formatted}&status=sent"
 
         # Call the Mercury API
         try:
@@ -89,9 +101,19 @@ def fetch_transaction_data():
                 continue
 
             # Generate a hash for deduplication
-            tx_hash = frappe.generate_hash(
-                f"{tx.get('amount')}{tx.get('createdAt')}{tx.get('counterpartyName')}{tx.get('note') or ''}"
-            )
+            counter_tx_hash = f"{tx.get("kind")}{tx.get('amount')}{account["name"]}{tx.get("createdAt")[:13]}"
+            
+            counter_tx_name = frappe.get_value("BankTransaction", {"transaction_hash": counter_tx_hash}, "name")
+            if counter_tx_name:
+                counter_tx = frappe.get_doc("BankTransaction", counter_tx_name)
+                counter_tx.transaction_hash = None  # Invalidate the hash
+                counter_tx.save()
+                frappe.db.commit()  # Commit the change
+                continue
+
+            tx_hash = f"{tx.get("kind")}{-1 * tx.get('amount')}{tx.get('counterpartyName')}{tx.get("createdAt")[:13]}"
+        
+            
             
             # Create a new BankTransaction with only the required fields
             doc = frappe.get_doc({
@@ -100,7 +122,7 @@ def fetch_transaction_data():
             
             doc.external_id = tx["id"]
             doc.payload = json.dumps(tx)
-            doc.processed_hash = tx_hash
+            doc.transaction_hash = tx_hash
             doc.status = "Pending"
             doc.our_account_name = account["name"]
             doc.our_account_nickname = account["nickname"]
@@ -110,6 +132,7 @@ def fetch_transaction_data():
             doc.transaction_status = tx.get("status")
             doc.bank_description = tx.get("bankDescription")
             doc.counterparty_name = tx.get("counterpartyName")
+            doc.counterparty_nickname = tx.get("counterpartyNickname")
             doc.kind = tx.get("kind")
             doc.dashboard_link = tx.get("dashboardLink")
             
