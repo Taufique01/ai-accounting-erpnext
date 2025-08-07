@@ -102,16 +102,14 @@ def fetch_transaction_data():
 
             # Generate a hash for deduplication
             counter_tx_hash = f"{tx.get("kind")}{tx.get('amount')}{account["name"]}{tx.get("createdAt")[:13]}"
-            
+            is_duplicate_transaction = False
             counter_tx_name = frappe.get_value("BankTransaction", {"transaction_hash": counter_tx_hash}, "name")
+            duplicate_marker_in_hash = ""
             if counter_tx_name:
-                counter_tx = frappe.get_doc("BankTransaction", counter_tx_name)
-                counter_tx.transaction_hash = None  # Invalidate the hash
-                counter_tx.save()
-                frappe.db.commit()  # Commit the change
-                continue
-
-            tx_hash = f"{tx.get("kind")}{-1 * tx.get('amount')}{tx.get('counterpartyName')}{tx.get("createdAt")[:13]}"
+                is_duplicate_transaction = True
+                duplicate_marker_in_hash = "duplicated"
+            
+            tx_hash = f"{duplicate_marker_in_hash}{tx.get("kind")}{-1 * tx.get('amount')}{tx.get('counterpartyName')}{tx.get("createdAt")[:13]}"
         
             
             
@@ -126,7 +124,7 @@ def fetch_transaction_data():
             doc.status = "Pending"
             doc.our_account_name = account["name"]
             doc.our_account_nickname = account["nickname"]
-            
+            doc.is_duplicate = is_duplicate_transaction
             doc.amount = tx.get("amount", 0.0)
             doc.transaction_date =  datetime.fromisoformat(tx.get("createdAt").rstrip('Z'))
             doc.transaction_status = tx.get("status")

@@ -17,7 +17,7 @@ def get_transaction(account_name):
     
     tnxs = frappe.get_all(
         "BankTransaction",
-        filters={"status": "Pending", "transaction_status": "sent", "our_account_nickname": account_name},
+        filters={"status": "Pending", "transaction_status": "sent", "our_account_nickname": account_name, "is_duplicate":False},
         fields=["name"],
         limit = 500
     )

@@ -18,6 +18,7 @@
   "our_account_name",
   "our_account_nickname",
   "kind",
+  "is_duplicate",
   "note",
   "ai_result",
   "error_description",
@@ -144,12 +145,18 @@
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "Transaction hash"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_duplicate",
+   "fieldtype": "Check",
+   "label": "Duplicate transaction"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-08-06 11:55:32.766474",
+ "modified": "2025-08-07 16:54:25.021552",
  "modified_by": "Administrator",
  "module": "Ai Accountant",
  "name": "BankTransaction",

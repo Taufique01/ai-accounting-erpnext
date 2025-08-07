@@ -65,7 +65,7 @@ def run_report(report_name):
         "calculate_ageing_with": "Report Date",
         "range": "30, 60, 90, 120",
         "customer_group": [],
-        "period_start_date":  add_days(today(), -700),
+        "period_start_date":  add_days(today(), -300),
         "period_end_date":  today(),
         "periodicity": "Monthly"
     }
