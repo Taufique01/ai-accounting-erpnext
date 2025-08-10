@@ -5,162 +5,7 @@ from datetime import datetime
 from ai_accountant.ai_accountant.realtime_utils import notify_progress
 from ai_accountant.ai_accountant.llm_helper import get_openai_api_key, log_cost, format_accounts_for_prompt, prepare_tx_list_for_prompt
 from ai_accountant.ai_accountant.classify import classify_msb_trust, classify_msb_operating, classify_msb_payroll, classify_msb_ars, classify_msb_workers_comp
-# Define OpenAI function calling schema
-journal_schema = {
-    "name": "post_journal",
-    "parameters": {
-        "type": "object",
-        "properties": {
-            "results": {
-                "type": "array",
-                "items": {
-                    "type": "object",
-                    "properties": {
-                        "name": {"type": "string"},
-                        "entries": {
-                            "type": "array",
-                            "items": {
-                                "type": "object",
-                                "properties": {
-                                    "debit_account": {"type": "string"},
-                                    "credit_account": {"type": "string"},
-                                    "amount": {"type": "number"},
-                                    "memo": {"type": "string"},
-                                    "confidence": {"type": "number"}
-                                },
-                                "required": ["debit_account", "credit_account", "amount", "memo", "confidence"]
-                            }
-                        }
-                    },
-                    "required": ["name", "entries"]
-                }
-            }
-        },
-        "required": ["results"]
-    }
-}
-
-
-
-def check_vendor_map(vendor_name):
-    if not vendor_name:
-        return None
-    vendor_hash = frappe.generate_hash(vendor_name)
-    return frappe.db.get_value("VendorMap", {"vendor_hash": vendor_hash}, "gl_account")
-
-
-
-def update_vendor_map(vendor_name, gl_account):
-    if not vendor_name or not gl_account:
-        return
-    vendor_hash = frappe.generate_hash(vendor_name)
-    existing = frappe.db.exists("VendorMap", {"vendor_hash": vendor_hash})
-    if existing:
-        doc = frappe.get_doc("VendorMap", existing)
-        doc.gl_account = gl_account
-        doc.save()
-    else:
-        doc = frappe.get_doc({
-            "doctype": "VendorMap",
-            "vendor_hash": vendor_hash,
-            "gl_account": gl_account
-        })
-        doc.insert()
-
-
-
-ERROR_PROMPT = "You are provided with:\n" + "1. The current bank transaction,\n" + "2. The previous classification result for this transaction,\n" + "3. The previous general ledger entry error (if available).\n\n" + "Use the company's Chart of Accounts to select the most accurate classification. so that the error goes away"
-
-def classify_transaction(tx_list, status="Pending"):
-    """Classify a single transaction using OpenAI"""
-    
-    start_time = datetime.now()
-
-
-    accounts_text = format_accounts_for_prompt()
-
-    prompt = [
-        {
-            "role": "system",
-            "content": (
-                "Midwest service bureau, LLC is a Technology-Enhanced Debt Recovery with Human Touch company.\n"
-                "You are an expert accountant of the company. Your task is to classify bank transactions into double-entry journal entries.\n"
-                "For each bank transaction, return the corresponding 'debit_account' and 'credit_account' using the company's Chart of Accounts below. Use the name of the account as 'debit_account' and 'credit_account'\n"
-                "Money received is usually: Debit = Bank, Credit = Income\n"
-                "Money sent is usually: Debit = Expense or Asset, Credit = Bank.\n"
-                "For internal transfers between bank accounts, use the source account as the credit, and the destination account as the debit. No income or expense is involved.\n"
-                "❌ Do not use accrual-based accounts like 'Accounts Receivable', 'Accounts Payable', 'Customer Advances', 'Loans', 'Employee Advances', 'Inventory', or 'Prepaid Expenses'\n"
-                "Only classify payments with Bank, Income, or Expense accounts from the company's chart of accounts\n"
-                "You can also use vendor details if available. If no suitable account match is found, then use appropriate Suspense account \n"
-            )
-        },
-        {
-            "role": "system",
-            "content": f"Company's Chart of Accounts:\n{accounts_text}"
-        }
-    ]
-
-    model = "gpt-4o"   
-    if status == "Error":
-        prompt.append({
-            "role": "system",
-            "content": ERROR_PROMPT
-        })
-        
-        
-    
-    
-    prompt.append(        {
-            "role": "user",
-            "content": f"Classify the following transactions:\n{json.dumps(tx_list, indent=2)}"
-    })
-
-
-    api_key = get_openai_api_key()
-    if not api_key:
-        frappe.throw("OpenAI API key not configured")
-
-    client = OpenAI(
-        # base_url="https://openrouter.ai/api/v1",
-        api_key=api_key,
-    )
-    try:
-        response = client.chat.completions.create(
-            model=model,  # You may want to switch to just "gpt-3.5-turbo" or a newer model
-            tools=[
-                {
-                    "type": "function",
-                    "function": journal_schema  # your function schema goes here
-                }
-            ],
-            tool_choice={"type": "function", "function": {"name": "post_journal"}},
-            messages=prompt
-        )
-
-        end_time = datetime.now() 
-        
-        duration = end_time - start_time
-        
-        
-
-
-        results = json.loads(response.choices[0].message.tool_calls[0].function.arguments)
-        
-        
-        log_cost(
-            tokens_in=response.usage.prompt_tokens,
-            tokens_out=response.usage.completion_tokens,
-            input=f"Classify the following transactions:\n{json.dumps(tx_list, indent=2)}",
-            output=json.dumps(results),
-            duration = duration,
-            model=model
-        )
-        
-        return results["results"]
-
-    except Exception as e:
-        print(f"OpenAI API Error: {str(e)}", "AI Accountant")
-        return None
+from ai_accountant.ai_accountant.ai_classify import classify_transaction
 
 
 def save_ai_classification_result(result, input_transaction):
@@ -185,16 +30,12 @@ def save_ai_classification_result(result, input_transaction):
     tx_doc.save()
 
 def get_party_info(account, counterparty):
-    account_type = frappe.db.get_value("Account", account, "account_type")
-    if account_type in ["Receivable", "Payable"]:
         return frappe.db.get_value(
             "VendorMap",
             {"vendor_name": ["like", f"%{counterparty}%"]},
             ["party", "party_type"],
             as_dict=True
         )
-    return None
-
 
 def save_journal_entry(result, tx_created_at_str):
     
@@ -218,14 +59,14 @@ def save_journal_entry(result, tx_created_at_str):
         counterparty = entry.get("counterparty", "")
         confidence = entry.get("confidence")
 
-        if confidence < .75:
+        if confidence < .70:
             raise ValueError(f"Classification confidence is very less {confidence}")
         
 
             
         # Get party info for debit and credit accounts
-        party_for_debit = get_party_info(debit_account, counterparty)
-        party_for_credit = get_party_info(credit_account, counterparty)
+        # party_for_debit = get_party_info(debit_account, counterparty)
+        # party_for_credit = get_party_info(credit_account, counterparty)
         
         # Prepare debit line
         debit_line = {
@@ -233,8 +74,8 @@ def save_journal_entry(result, tx_created_at_str):
             "debit_in_account_currency": amount,
             "credit_in_account_currency": 0
         }
-        if party_for_debit:
-            debit_line.update(party_for_debit)
+        # if party_for_debit:
+        #     debit_line.update(party_for_debit)
 
         # Prepare credit line
         credit_line = {
@@ -242,8 +83,8 @@ def save_journal_entry(result, tx_created_at_str):
             "debit_in_account_currency": 0,
             "credit_in_account_currency": amount
         }
-        if party_for_credit:
-            credit_line.update(party_for_credit)
+        # if party_for_credit:
+        #     credit_line.update(party_for_credit)
 
         # Create Journal Entry
         je = frappe.get_doc({
@@ -258,6 +99,58 @@ def save_journal_entry(result, tx_created_at_str):
         je.submit()
 
 
+def merge_ai_classifications(unclassified_expenses, ai_classifications):
+    """
+    Merge AI classifications into unclassified expenses.
+
+    Args:
+        unclassified_expenses (list): List of dicts, each with keys 'name' and 'entries'.
+        ai_classifications (list): List of dicts, each with keys 'name' and 'entries',
+                                   where entries contain 'debit_account', 'memo', 'confidence'.
+
+    Returns:
+        list: Merged list with AI classifications applied to unclassified expenses.
+    """
+    ai_lookup = {item["name"]: item for item in ai_classifications}
+
+    merged_list = []
+    for expense in unclassified_expenses:
+        name = expense.get("transaction").name
+        entries = expense.get("entries", [])
+        if name in ai_lookup:
+            ai_entry = ai_lookup[name]["entries"][0]  # assuming 1 entry per transaction here
+            updated_entries = []
+            for entry in entries:
+                updated_entries.append({
+                     # keep all original fields
+                    "credit_account": entry.get("credit_account"),
+                    "amount": entry.get("amount") ,
+                    "debit_account": ai_entry.get("debit_account"),
+                    "memo": ai_entry.get("memo", entry.get("memo")),
+                    "confidence": ai_entry.get("confidence")
+                })
+            merged_list.append({"name": name, "entries": updated_entries})
+        else:
+            # No AI classification found, keep original
+            merged_list.append(expense)
+    return merged_list
+
+def extract_all_transactions(expense_list):
+    """
+    Extract and combine all 'entries' from a list of dicts with keys 'transaction' and 'entries'.
+
+    Args:
+        expense_list (list): List of dicts, each with 'transaction' and 'entries' keys.
+
+    Returns:
+        list: A flat list containing all entries from all expense items.
+    """
+    results = []
+    for item in expense_list:
+        results.append(item.get("transaction"))
+    return results
+
+
 def classify_batch(status="Pending"):
     """Process a batch of pending transactions"""
     print("I am in classifying batch")
@@ -270,38 +163,62 @@ def classify_batch(status="Pending"):
     # tx_list = prepare_tx_list_for_prompt(status, working_list)
     # results = classify_transaction(tx_list, status)
     
-    results, transactions = classify_msb_trust()
-    print(results, transactions)
-    tx_map = {tx.name: tx for tx in transactions}
-    trust_processed = save_results_in_gl_entry(results, tx_map)
-    notify_progress(trust_processed, total_transactions)
+    # results, transactions = classify_msb_trust()
+    # print(results, transactions)
+    # tx_map = {tx.name: tx for tx in transactions}
+    # trust_processed = save_results_in_gl_entry(results, tx_map)
+    # notify_progress(trust_processed, total_transactions)
 
-    results, transactions = classify_msb_ars()
-    tx_map = {tx.name: tx for tx in transactions}
-    save_results_in_gl_entry(results, tx_map)
+    # results, transactions = classify_msb_ars()
+    # tx_map = {tx.name: tx for tx in transactions}
+    # save_results_in_gl_entry(results, tx_map)
     
 
-    results, transactions = classify_msb_workers_comp()
-    tx_map = {tx.name: tx for tx in transactions}
-    save_results_in_gl_entry(results, tx_map)
+    # results, transactions = classify_msb_workers_comp()
+    # tx_map = {tx.name: tx for tx in transactions}
+    # save_results_in_gl_entry(results, tx_map)
     
     
-    results, transactions = classify_msb_operating()
-    tx_map = {tx.name: tx for tx in transactions}
-    operating_processed = save_results_in_gl_entry(results, tx_map)
-    notify_progress(0+operating_processed, total_transactions)
-            
+    classify_msb_operating_transactions(total_transactions)
 
-    results, transactions = classify_msb_payroll()
-    tx_map = {tx.name: tx for tx in transactions}
-    payroll_processed = save_results_in_gl_entry(results, tx_map)
-    notify_progress(0+0+payroll_processed, total_transactions)
+    # results, transactions = classify_msb_payroll()
+    # tx_map = {tx.name: tx for tx in transactions}
+    # payroll_processed = save_results_in_gl_entry(results, tx_map)
+    # notify_progress(0+0+payroll_processed, total_transactions)
 
 
 
     notify_progress(total_transactions, total_transactions)
 
     return f"Processed {processed} transactions"
+
+def classify_msb_operating_transactions(total_transactions):
+    results, transactions, unclassified_expenses, unclassified_revenues = classify_msb_operating()
+    tx_map = {tx.name: tx for tx in transactions}
+    operating_processed = save_results_in_gl_entry(results, tx_map)
+    notify_progress(0+operating_processed, total_transactions)
+    
+    
+    # print("unclassified\n", unclassified_expenses)
+    tx = extract_all_transactions(unclassified_expenses)
+    tx_list = prepare_tx_list_for_prompt("Pending", tx)
+    
+    ai_classifications = classify_transaction(tx_list)
+    
+    expense_ai_result = merge_ai_classifications(unclassified_expenses, ai_classifications)
+    # print("after merged", expense_ai_result)
+    tx_map = {u_e["transaction"].name: u_e["transaction"] for u_e in unclassified_expenses}
+    save_results_in_gl_entry(expense_ai_result, tx_map)
+    
+    # process unclassified revenues
+    
+    tx_unclassified_revenues = extract_all_transactions(unclassified_revenues)
+    revenue_tx_list_for_ai = prepare_tx_list_for_prompt("Pending", tx_unclassified_revenues)
+    ai_classified_for_revenues = classify_transaction(revenue_tx_list_for_ai)
+    tx_map = {u_e["transaction"].name: u_e["transaction"] for u_e in unclassified_revenues}
+    save_results_in_gl_entry(ai_classified_for_revenues, tx_map)
+
+    
 
 def save_results_in_gl_entry(results, tx_map):
     processed = 0
@@ -348,5 +265,7 @@ def save_results_in_gl_entry(results, tx_map):
     except Exception as e:
             processed += 1
             print(f"Error processing AI result : {str(e)}", "AI Accountant")
+            frappe.msgprint(f"Error processing AI result : {str(e)}", "AI Accountant")
+
     return processed
 

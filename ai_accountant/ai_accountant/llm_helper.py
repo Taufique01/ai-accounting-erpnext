@@ -40,13 +40,13 @@ def log_cost(tokens_in, tokens_out, input="", output="", duration=None, model="g
     return cost
 
 
-def format_accounts_for_prompt():
+def format_accounts_for_prompt(accounts=[]):
     company_name = frappe.db.get_single_value('BankTransactionInfo', 'company_name')
 
     accounts = frappe.get_all(
         "Account",
         fields=["name", "account_type", "parent_account", "root_type"],
-        filters={"company": company_name, "is_group": 0, "root_type": ["in", ["Asset", "Income", "Expense"]],
+        filters={"company": company_name, "is_group": 0, "root_type": ["in", accounts],
 },
         order_by="name"
     )
@@ -69,28 +69,29 @@ def prepare_tx_list_for_prompt(status, working_list):
     tx_list = []
     for tx in working_list:
         parsed = json.loads(tx.payload)
-        counterparty = tx.get("counterparty_name", "").strip().upper()
+        counterparty = tx.get("counterparty_name", "").strip()
         counterparty_doc = frappe.db.get_value(
                 "Counter Party",
-                {"name": ["like", counterparty]},
-                ["name", "party_type", "hints"],
+                {"vendor_name": ["like", f"%{counterparty}%"]},
+                ["vendor_name",  "hints"],
                 as_dict=True
             )
+        
+        
         
         counterparty_details = ""
         if counterparty_doc:
             counterparty_details = {
-                        "name": counterparty_doc.name,
-                        "party_type": counterparty_doc.party_type,
-                        "hints_for_ai_accountant": counterparty_doc.hints
+                        "name": counterparty_doc.vendor_name,
+                        "counter_party_hints_for_ai_accountant": counterparty_doc.hints
                     }
-        
+
         if status == "Error":
             prev_classification_results = format_entries(tx)
             temp = {
                     "name":tx.name,
-                    "previous_classification_query_result": prev_classification_results,
-                    "gl_entry_error": tx.error_description,
+                    # "previous_classification_query_result": prev_classification_results,
+                    # "gl_entry_error": tx.error_description,
                     "transaction": parsed,
                     "transaction_hints_for_ai_accountant": tx.transaction_hints_for_ai_accountant,
                     "counterParty": counterparty_details
@@ -99,10 +100,12 @@ def prepare_tx_list_for_prompt(status, working_list):
         else:
             tx_list.append({
                     "name":tx.name,
-                    "transaction_hints_for_ai_accountant": tx.transaction_hints_for_ai_accountant,
+                    # "transaction_hints_for_ai_accountant": tx.transaction_hints_for_ai_accountant,
                     "transaction": parsed,
                     "counterParty": counterparty_details
                 })
+            
+    print(tx_list)
             
     return tx_list
 

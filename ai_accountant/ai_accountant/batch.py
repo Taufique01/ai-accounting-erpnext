@@ -28,6 +28,8 @@ def process_all_pending():
     # )
     # print("Job enqueued with ID:", job.id)
     # frappe.get_doc("Job", job.id).status
+    
+    print("in batch")
     classify_batch()
     return {"status": "success", "message": "All pending transaction processing completed."}
 

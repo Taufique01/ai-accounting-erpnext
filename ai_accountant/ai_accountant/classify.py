@@ -19,7 +19,7 @@ def get_transaction(account_name):
         "BankTransaction",
         filters={"status": "Pending", "transaction_status": "sent", "our_account_nickname": account_name, "is_duplicate":False},
         fields=["name"],
-        limit = 500
+        limit = 10
     )
     
     transactions = [frappe.get_doc("BankTransaction", tx.name) for tx in tnxs]
@@ -112,15 +112,19 @@ def classify_msb_trust():
 
 
 def classify_msb_operating():
+    print("in classifying operating")
     transactions = get_transaction(Account.MSB_OPERATING)
 
     results = []
+    unclassified_expenses = []
+    unclassified_revenues = []
+    
+    
     for tnx in transactions:
         cp = tnx.counterparty_nickname
+        is_unclassified_expense = False
+        is_unclassified_revenue = False
         entries = []
-        
-        # if tnx.counterparty_nickname == Account.MSB_TRUST:
-        #     continue
 
         # INFLOW: Money coming into MSB Operating
         if tnx.amount > 0:
@@ -150,6 +154,7 @@ def classify_msb_operating():
                     })
 
             else:
+                is_unclassified_revenue = True
                 # External inflow (e.g., refund, overpayment, etc.)
                 entries.append({
                     "debit_account": accounting_name(Account.MSB_OPERATING),
@@ -186,17 +191,23 @@ def classify_msb_operating():
                     })
 
             else:
+                is_unclassified_expense = True
                 # External outflow (e.g., operating expense, vendor payment)
                 entries.append({
-                    "debit_account": "Administrative Expenses - MSBL", ## need AI to classify what type of expense## may be asset
+                    "debit_account": "NOT DETERMINED-NEED AI HELP", ## need AI to classify what type of expense## may be asset
                     "credit_account": accounting_name(Account.MSB_OPERATING),
                     "amount": abs(tnx.amount),
                     "memo": "External payment from MSB Operating (e.g., vendor or expense)", ## AI generated
                     "confidence": 0.9
                 })
 
-        results.append({"name": tnx.name, "entries":entries})
-    return results, transactions
+        if is_unclassified_expense:
+            unclassified_expenses.append({"transaction":tnx, "entries": entries})
+        elif is_unclassified_revenue:
+            unclassified_revenues.append({"transaction":tnx, "entries": entries})
+        else:
+            results.append({"name": tnx.name, "entries":entries})
+    return results, transactions, unclassified_expenses, unclassified_revenues
 
 
 def classify_msb_payroll():

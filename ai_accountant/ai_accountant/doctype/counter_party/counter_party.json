@@ -1,35 +1,21 @@
 {
  "actions": [],
  "allow_rename": 1,
+ "autoname": "prompt",
  "creation": "2025-06-08 11:04:55.116615",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
   "vendor_name",
-  "party_type",
-  "party",
   "hints"
  ],
  "fields": [
   {
    "fieldname": "vendor_name",
    "fieldtype": "Data",
+   "in_list_view": 1,
    "label": "Vendor name(counterparty)",
    "reqd": 1
-  },
-  {
-   "fieldname": "party",
-   "fieldtype": "Dynamic Link",
-   "in_list_view": 1,
-   "label": "Party",
-   "options": "party_type"
-  },
-  {
-   "fieldname": "party_type",
-   "fieldtype": "Link",
-   "label": "Party type",
-   "options": "DocType",
-   "search_index": 1
   },
   {
    "fieldname": "hints",
@@ -40,10 +26,11 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-07-20 16:14:03.644361",
+ "modified": "2025-08-11 00:14:33.367933",
  "modified_by": "Administrator",
  "module": "Ai Accountant",
  "name": "Counter Party",
+ "naming_rule": "Set by user",
  "owner": "Administrator",
  "permissions": [
   {
