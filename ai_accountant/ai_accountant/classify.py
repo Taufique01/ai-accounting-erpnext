@@ -13,13 +13,15 @@ def accounting_name(ant):
     return f"{ant} - MSBL"
 
 def get_transaction(account_name):
-    limit = frappe.db.get_single_value('LLMSettings', 'limit')
+    limit = 500
+    if account_name in [Account.MSB_OPERATING, Account.MSB_PAYROLL]:
+        limit = frappe.db.get_single_value('LLMSettings', 'limit')
     
     tnxs = frappe.get_all(
         "BankTransaction",
         filters={"status": "Pending", "transaction_status": "sent", "our_account_nickname": account_name, "is_duplicate":False},
         fields=["name"],
-        limit = 10
+        limit = limit
     )
     
     transactions = [frappe.get_doc("BankTransaction", tx.name) for tx in tnxs]
@@ -32,11 +34,9 @@ ACC_NAME_CLIENT_PAYABLE = "Funds Held in Trust - MSBL"
 def classify_msb_trust():
     
     transactions = get_transaction(Account.MSB_TRUST)
-    print(transactions)
     results = []
 
     for tnx in transactions:
-        print("tnx")
         entries = []
         amount = abs(tnx.amount)
         cp = tnx.counterparty_nickname  # assumed to be string like "MSB_OPERATING"
@@ -112,7 +112,6 @@ def classify_msb_trust():
 
 
 def classify_msb_operating():
-    print("in classifying operating")
     transactions = get_transaction(Account.MSB_OPERATING)
 
     results = []
@@ -158,7 +157,7 @@ def classify_msb_operating():
                 # External inflow (e.g., refund, overpayment, etc.)
                 entries.append({
                     "debit_account": accounting_name(Account.MSB_OPERATING),
-                    "credit_account": ACC_NAME_REV_COLLECTION_FEE,
+                    "credit_account": "NOT DETERMINED-NEED AI HELP",
                     "amount": tnx.amount,
                     "memo": f"External deposit into MSB Operating from {tnx.counterparty_name}",
                     "confidence": 1  # Lower confidence since purpose may vary
@@ -214,31 +213,29 @@ def classify_msb_payroll():
     transactions = get_transaction(Account.MSB_PAYROLL)
 
     results = []
+    unclassified_expenses = []
+    unclassified_revenues = []
+
     for tnx in transactions:
-        entries = []
         cp = tnx.counterparty_nickname
-        
-        # if cp in [Account.MSB_TRUST, Account.MSB_OPERATING]:
-        #     continue
+        is_unclassified_expense = False
+        is_unclassified_revenue = False
+        entries = []
 
         # INFLOW: Money coming into MSB Payroll
         if tnx.amount > 0:
             if tnx.kind == "internalTransfer":
-                # internalTransfer transfer from other MSB account
+                # Internal transfer from another MSB account
                 entries.append({
                     "debit_account": accounting_name(Account.MSB_PAYROLL),
                     "credit_account": accounting_name(cp),
                     "amount": tnx.amount,
-                    "memo": f"internal transfer from {cp} to MSB Payroll",
+                    "memo": f"Internal transfer from {cp} to MSB Payroll",
                     "confidence": 1
                 })
 
-                # If from Trust or Workers Comp or ARS → revenue recognition
-                if cp in [
-                    Account.MSB_TRUST,
-                    Account.MSB_WORKER_COMPENSATION,
-                    Account.MSB_ARS
-                ]:
+                # If from Trust, Workers Comp, or ARS → revenue recognition
+                if cp in [Account.MSB_TRUST, Account.MSB_WORKER_COMPENSATION, Account.MSB_ARS]:
                     entries.append({
                         "debit_account": ACC_NAME_CLIENT_PAYABLE,
                         "credit_account": ACC_NAME_REV_COLLECTION_FEE,
@@ -246,35 +243,31 @@ def classify_msb_payroll():
                         "memo": "Recognize revenue from internal transfer to MSB Payroll",
                         "confidence": 1
                     })
-
             else:
-                # External inflow (e.g., payroll reimbursements etc.)
+                # External inflow (AI to determine revenue type)
+                is_unclassified_revenue = True
                 entries.append({
                     "debit_account": accounting_name(Account.MSB_PAYROLL),
-                    "credit_account": ACC_NAME_REV_COLLECTION_FEE,
+                    "credit_account": "NOT DETERMINED-NEED AI HELP",
                     "amount": tnx.amount,
                     "memo": f"External deposit into MSB Payroll from {tnx.counterparty_name}",
-                    "confidence": 1
+                    "confidence": 0.9
                 })
 
         # OUTFLOW: Money leaving MSB Payroll
         else:
             if tnx.kind == "internalTransfer":
-                # internalTransfer transfer to another MSB account
+                # Internal transfer to another MSB account
                 entries.append({
                     "debit_account": accounting_name(cp),
                     "credit_account": accounting_name(Account.MSB_PAYROLL),
                     "amount": abs(tnx.amount),
-                    "memo": f"internal transfer from MSB Payroll to {cp}",
+                    "memo": f"Internal transfer from MSB Payroll to {cp}",
                     "confidence": 1
                 })
 
-                # If to Trust or Workers Comp or ARS → reverse revenue recognition
-                if cp in [
-                    Account.MSB_TRUST,
-                    Account.MSB_WORKER_COMPENSATION,
-                    Account.MSB_ARS
-                ]:
+                # If to Trust, Workers Comp, or ARS → reverse revenue recognition
+                if cp in [Account.MSB_TRUST, Account.MSB_WORKER_COMPENSATION, Account.MSB_ARS]:
                     entries.append({
                         "debit_account": ACC_NAME_REV_COLLECTION_FEE,
                         "credit_account": ACC_NAME_CLIENT_PAYABLE,
@@ -282,19 +275,27 @@ def classify_msb_payroll():
                         "memo": "Reverse revenue for internal transfer from MSB Payroll",
                         "confidence": 1
                     })
-
             else:
-                # External outflow (e.g., payroll expenses, salary payments)
+                # External outflow (AI to determine payroll expense type)
+                is_unclassified_expense = True
                 entries.append({
-                    "debit_account": "Salary - MSBL",  # Consider AI classification for specific payroll expense types
+                    "debit_account": "NOT DETERMINED-NEED AI HELP",
                     "credit_account": accounting_name(Account.MSB_PAYROLL),
                     "amount": abs(tnx.amount),
                     "memo": "External payroll payment from MSB Payroll",
-                    "confidence": 1
+                    "confidence": 0.9
                 })
 
-        results.append({"name": tnx.name, "entries":entries})
-    return results, transactions
+        # Append to appropriate list
+        if is_unclassified_expense:
+            unclassified_expenses.append({"transaction": tnx, "entries": entries})
+        elif is_unclassified_revenue:
+            unclassified_revenues.append({"transaction": tnx, "entries": entries})
+        else:
+            results.append({"name": tnx.name, "entries": entries})
+
+    return results, transactions, unclassified_expenses, unclassified_revenues
+
 
 
 def classify_msb_ars():

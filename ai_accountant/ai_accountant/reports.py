@@ -3,7 +3,7 @@ import json
 from frappe.utils.pdf import get_pdf
 from frappe.utils import today, add_days
 from frappe.email.doctype.email_template.email_template import get_email_template
-from ai_accountant.ai_accountant.llm import get_openai_api_key, log_cost
+from ai_accountant.ai_accountant.classify_and_into_journal import get_openai_api_key, log_cost
 from frappe.desk.query_report import run
 from openai import OpenAI
 from datetime import datetime
@@ -52,7 +52,6 @@ def get_openai_api_key():
 
 def run_builtin_report(report_name, filters):
     result = run(report_name, filters)
-    # print(result)
     return result["result"]
 
 def run_report(report_name):
@@ -71,10 +70,9 @@ def run_report(report_name):
     }
     try:
         result = run_builtin_report(report_name, filters)
-        # print(result)
         return result
     except Exception as e:
-        print(str(e), "aaaaaaaaaaaaaaaaaaaaaa")
+        print(str(e))
         return None
 
 
@@ -88,8 +86,6 @@ def summarize_report(report_data, report_name):
         api_key=api_key,
     )
     
-    # print(report_data)
-
     prompt = [
         {"role": "system", "content": f"You are an expert CPA. Generate a formal {report_name}. Return in clean html format"},
         {"role": "user", "content": json.dumps(report_data)}
@@ -126,8 +122,7 @@ def summarize_report(report_data, report_name):
             duration = duration,
             model="gpt-4o"
         )
-        print("================================")
-        print(result)
+
         return result
 
     except Exception as e:

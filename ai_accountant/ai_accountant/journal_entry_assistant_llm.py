@@ -136,8 +136,7 @@ def process_text_batch(text_list, posting_date=None):
     Example input: ["Paid rent for July...", "Bought laptop for..."]
     """
     results = classify_transaction(text_list)
-    
-    print(results)
+
     error_responses = []
     success = 0
     failed = 0

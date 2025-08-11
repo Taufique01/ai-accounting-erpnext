@@ -60,7 +60,6 @@ def format_accounts_for_prompt(accounts=[]):
             f"parent_account: {acc['parent_account']}"
         )
         lines.append(line)
-    print(lines)
     return "\n".join(lines)
 
 
@@ -104,9 +103,7 @@ def prepare_tx_list_for_prompt(status, working_list):
                     "transaction": parsed,
                     "counterParty": counterparty_details
                 })
-            
-    print(tx_list)
-            
+                        
     return tx_list
 
 def format_entries(tx):

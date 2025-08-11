@@ -1,6 +1,6 @@
 import frappe
 from frappe.utils.background_jobs import enqueue
-from ai_accountant.ai_accountant.llm import classify_batch
+from ai_accountant.ai_accountant.classify_and_into_journal import classify_batch
 
 def check_pending_transactions():
     """Check if there are enough pending transactions to process"""
@@ -29,7 +29,6 @@ def process_all_pending():
     # print("Job enqueued with ID:", job.id)
     # frappe.get_doc("Job", job.id).status
     
-    print("in batch")
     classify_batch()
     return {"status": "success", "message": "All pending transaction processing completed."}
 

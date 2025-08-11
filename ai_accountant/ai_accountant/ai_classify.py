@@ -38,6 +38,40 @@ expense_journal_schema = {
 }
 
 
+income_journal_schema = {
+    "name": "post_journal_income",
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "results": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "name": {"type": "string"},
+                        "entries": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "credit_account": {"type": "string"},
+                                    "memo": {"type": "string"},
+                                    "confidence": {"type": "number"}
+                                },
+                                "required": ["credit_account", "memo", "confidence"]
+                            }
+                        }
+                    },
+                    "required": ["name", "entries"]
+                }
+            }
+        },
+        "required": ["results"]
+    }
+}
+
+
+
 # -------------------------
 # Generic OpenAI Function
 # -------------------------
@@ -92,12 +126,15 @@ def call_openai_with_schema(tx_list, prompt_messages, schema_function, schema_fu
 # -------------------------
 # Accounting-specific Function
 # -------------------------
-def classify_transaction(tx_list):
+def classify_expense_transactions_in_expense_account(tx_list, account_name):
     """
     Classifies bank transactions into double-entry journal entries.
     Uses company's chart of accounts and journal schema.
     """
-    accounts_text = format_accounts_for_prompt(["expense"])
+    if account_name=="Payroll":
+        accounts_text = "'Salary - MSBL', 'Insurance - MSBL'"
+    else:
+        accounts_text = format_accounts_for_prompt(["expense"])
     base_prompt = [
         {
             "role": "system",
@@ -136,8 +173,57 @@ def classify_transaction(tx_list):
         model="gpt-4o"
     )
     
-    print(results)
+    if results:
+        return results.get("results", [])
+    return None
 
+
+def classify_revenue_transactions_in_expense_account(tx_list):
+    """
+    Classifies bank transactions into double-entry journal entries.
+    Uses company's chart of accounts and journal schema.
+    """
+    accounts_text = format_accounts_for_prompt(["income"])
+    base_prompt = [
+        {
+            "role": "system",
+            "content": (
+                "You are an expert accountant for Midwest Service Bureau, LLC, a Technology-Enhanced Debt Recovery with Human Touch company.\n"
+                "Your job is to classify the incoming transactions in company's Operating account.\n"
+                "Follow these rules:\n"
+                "1. Classify the credit account type of each revenue transaction using the provided revenue accounts list.\n"
+                "2. Use available transaction details and other provided information to classify transactions.\n"
+                "3. If you cannot determine the exact category, select the most relevant default revenue account.\n"
+                "4. Only use accounts from the revenue accounts list below.\n"
+                "5. Return memo as the actual memo we write in accounting journal entries.\n"
+                "6. For each transaction, indicate it is a revenue transaction and specify the credit account.\n"
+            )
+        },
+        {
+            "role": "system",
+            "content": f"Revenue Accounts:\n{accounts_text}"
+        },
+    ]
+
+    # if status == "Error":
+    #     base_prompt.append({
+    #         "role": "system",
+    #         "content":" ERROR_PROMPT"
+    #     })
+
+    base_prompt.append({
+        "role": "user",
+        "content": f"Classify the following transactions:\n{json.dumps(tx_list, indent=2)}"
+    })
+
+    results = call_openai_with_schema(
+        tx_list=tx_list,
+        prompt_messages=base_prompt,
+        schema_function=income_journal_schema,
+        schema_function_name="post_journal_income",
+        model="gpt-4o"
+    )
+    
     if results:
         return results.get("results", [])
     return None

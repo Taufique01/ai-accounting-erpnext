@@ -69,19 +69,17 @@ frappe.pages['ai-dashboard'].on_page_load = function (wrapper) {
 	});
 
 
-	page.add_action_item('Retry Error Transactions', () => {
+	// page.add_action_item('Retry Error Transactions', () => {
 		
-		frappe.call({
-			method: 'ai_accountant.ai_accountant.batch.process_all_error',
-			callback: function (r) {
-				frappe.hide_progress();
-				if (r.message) {frappe.msgprint(r.message);
-				$('.tab-btn.btn-primary').click();}
-			}
-		});
-	});
-
-
+	// 	frappe.call({
+	// 		method: 'ai_accountant.ai_accountant.batch.process_all_error',
+	// 		callback: function (r) {
+	// 			frappe.hide_progress();
+	// 			if (r.message) {frappe.msgprint(r.message);
+	// 			$('.tab-btn.btn-primary').click();}
+	// 		}
+	// 	});
+	// });
 
 };
 
