@@ -3,7 +3,7 @@ import json
 from frappe.utils.pdf import get_pdf
 from frappe.utils import today, add_days
 from frappe.email.doctype.email_template.email_template import get_email_template
-from ai_accountant.ai_accountant.classify_and_into_journal import get_openai_api_key, log_cost
+from ai_accountant.ai_accountant.llm_helper import get_openai_api_key, log_cost
 from frappe.desk.query_report import run
 from openai import OpenAI
 from datetime import datetime
