@@ -59,7 +59,7 @@ def save_journal_entry(result, tx_created_at_str):
         counterparty = entry.get("counterparty", "")
         confidence = entry.get("confidence")
 
-        if confidence < .70:
+        if confidence < .60:
             raise ValueError(f"Classification confidence is very less {confidence}")
         
 
