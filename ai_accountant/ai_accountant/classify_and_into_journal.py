@@ -51,6 +51,7 @@ def save_journal_entry(result, tx_created_at_str):
     tx_name = result.get("name") 
         
     for entry in result.get("entries", []):
+        # print(entry)
         
         debit_account = entry.get("debit_account")
         credit_account = entry.get("credit_account")
@@ -59,7 +60,7 @@ def save_journal_entry(result, tx_created_at_str):
         counterparty = entry.get("counterparty", "")
         confidence = entry.get("confidence")
 
-        if confidence < .60:
+        if confidence < .50:
             raise ValueError(f"Classification confidence is very less {confidence}")
         
 
@@ -117,20 +118,23 @@ def merge_ai_classifications(unclassified_expenses, ai_classifications):
     for expense in unclassified_expenses:
         name = expense.get("transaction").name
         entries = expense.get("entries", [])
+        # print("duplicate entries -  expense", len(entries))
+
         if name in ai_lookup:
             ai_entry = ai_lookup[name]["entries"][0]  # assuming 1 entry per transaction here
             updated_entries = []
-            for entry in entries:
-                updated_entries.append({
-                     # keep all original fields
-                    "credit_account": entry.get("credit_account"),
-                    "amount": entry.get("amount") ,
-                    "debit_account": ai_entry.get("debit_account"),
-                    "memo": ai_entry.get("memo", entry.get("memo")),
-                    "confidence": ai_entry.get("confidence")
-                })
+            entry = entries[0]
+            updated_entries.append({
+                    # keep all original fields
+                "credit_account": entry.get("credit_account"),
+                "amount": entry.get("amount") ,
+                "debit_account": ai_entry.get("debit_account"),
+                "memo": ai_entry.get("memo", entry.get("memo")),
+                "confidence": ai_entry.get("confidence")
+            })
             merged_list.append({"name": name, "entries": updated_entries})
         else:
+            # print("extra appended expense")
             # No AI classification found, keep original
             merged_list.append(expense)
     return merged_list
@@ -140,25 +144,28 @@ def merge_ai_classifications_with_revenue_classification(unclassified_revenues, 
     ai_lookup = {item["name"]: item for item in ai_classifications}
 
     merged_list = []
-    for expense in unclassified_revenues:
-        name = expense.get("transaction").name
-        entries = expense.get("entries", [])
+    for revenue in unclassified_revenues:
+        name = revenue.get("transaction").name
+        entries = revenue.get("entries", [])
+        # print("duplicate entries -  revenue", len(entries))
         if name in ai_lookup:
             ai_entry = ai_lookup[name]["entries"][0]  # assuming 1 entry per transaction here
             updated_entries = []
-            for entry in entries:
-                updated_entries.append({
-                     # keep all original fields
-                    "credit_account": ai_entry.get("credit_account"),
-                    "debit_account": entry.get("debit_account"),
-                    "amount": entry.get("amount") ,
-                    "memo": ai_entry.get("memo", entry.get("memo")),
-                    "confidence": ai_entry.get("confidence")
-                })
+            entry = entries[0]
+            updated_entries.append({
+                    # keep all original fields
+                "credit_account": ai_entry.get("credit_account"),
+                "debit_account": entry.get("debit_account"),
+                "amount": entry.get("amount") ,
+                "memo": ai_entry.get("memo", entry.get("memo")),
+                "confidence": ai_entry.get("confidence")
+            })
             merged_list.append({"name": name, "entries": updated_entries})
         else:
+            # print("extra appended revenue")
+
             # No AI classification found, keep original
-            merged_list.append(expense)
+            merged_list.append(revenue)
     return merged_list
 
 
@@ -232,11 +239,13 @@ def classify_and_process_msb_expense_transactions(total_transactions, processed,
     expense_prompt_list = prepare_tx_list_for_prompt("Pending", expense_transactions)
     ai_expense_classifications = classify_expense_transactions_in_expense_account(expense_prompt_list, account)
     merged_expense_results = merge_ai_classifications(unclassified_expenses, ai_expense_classifications)
-    
+    # print("expense", len(merged_expense_results), len(unclassified_expenses))
     expense_tx_lookup = {item["transaction"].name: item["transaction"] for item in unclassified_expenses}
     processed_count = save_results_in_gl_entry(merged_expense_results, expense_tx_lookup)
     processed = processed + processed_count
     notify_progress(processed_count, total_transactions)
+    
+    
     # Step 3 – Handle unclassified revenues
     revenue_transactions = extract_all_transactions(unclassified_revenues)
     revenue_prompt_list = prepare_tx_list_for_prompt("Pending", revenue_transactions)
@@ -245,6 +254,8 @@ def classify_and_process_msb_expense_transactions(total_transactions, processed,
     merged_revenue_results = merge_ai_classifications_with_revenue_classification(
         unclassified_revenues, ai_revenue_classifications
     )
+    # print("revenue", len(merged_revenue_results), len(unclassified_revenues))
+
     revenue_tx_lookup = {item["transaction"].name: item["transaction"] for item in unclassified_revenues}
     processed_count = save_results_in_gl_entry(merged_revenue_results, revenue_tx_lookup)
     processed = processed + processed_count
