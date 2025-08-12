@@ -132,7 +132,7 @@ def classify_expense_transactions_in_expense_account(tx_list, account_name):
     Uses company's chart of accounts and journal schema.
     """
     if account_name=="Payroll":
-        accounts_text = "'Salary - MSBL', 'Insurance - MSBL'"
+        accounts_text = "'Salary - MSBL', 'Insurance - MSBL', 'Miscellaneous Expenses - MSBL"
     else:
         accounts_text = format_accounts_for_prompt(["expense"])
     base_prompt = [
