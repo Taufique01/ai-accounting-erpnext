@@ -1,6 +1,5 @@
 import frappe
 import json
-from openai import OpenAI
 from datetime import datetime
 from ai_accountant.ai_accountant.realtime_utils import notify_progress
 from ai_accountant.ai_accountant.llm_helper import prepare_tx_list_for_prompt
