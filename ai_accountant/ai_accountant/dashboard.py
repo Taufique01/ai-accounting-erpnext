@@ -255,8 +255,9 @@ def get_transaction_stats():
     status_counts = frappe.db.sql("""
         SELECT
             status,
-            COUNT(*) as count
+            COUNT(*) AS count
         FROM `tabBankTransaction`
+        WHERE is_duplicate = 0
         GROUP BY status
     """, as_dict=True)
 
