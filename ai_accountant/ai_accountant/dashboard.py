@@ -271,7 +271,7 @@ def get_transaction_stats():
     "BankTransaction",
     filters={
         "is_duplicate": 0,  # False
-        "modified": [">=", today()]
+        "modified": [">=", today]
     }
     )
     # Placeholder average processing time in days (replace with real logic if available)
