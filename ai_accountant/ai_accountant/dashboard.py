@@ -255,24 +255,26 @@ def get_transaction_stats():
     status_counts = frappe.db.sql("""
         SELECT
             status,
-            COUNT(*) AS count
+            COUNT(*) as count
         FROM `tabBankTransaction`
-        WHERE is_duplicate = 0
         GROUP BY status
     """, as_dict=True)
-
 
     status_dict = {status.status: status.count for status in status_counts}
 
     # Total transactions
-    total_count = frappe.db.count("BankTransaction")
+    total_count = frappe.db.count("BankTransaction", filters={"is_duplicate": 0})
 
     # Transactions modified today (since midnight)
     today = frappe.utils.now_datetime().replace(hour=0, minute=0, second=0, microsecond=0)
-    today_count = frappe.db.count("BankTransaction", {"modified": [">=", today]})
-
+    today_count = frappe.db.count(
+    "BankTransaction",
+    filters={
+        "is_duplicate": 0,  # False
+        "modified": [">=", today()]
+    }
+    )
     # Placeholder average processing time in days (replace with real logic if available)
-    avg_time = 3.5
 
     # Recent 10 transactions
     recent_txs = frappe.get_all(
@@ -302,7 +304,6 @@ def get_transaction_stats():
         "status_counts": status_dict,
         "total_count": total_count,
         "today_count": today_count,
-        "avg_processing_time": avg_time,
         "recent_transactions": formatted_txs,
         
     }

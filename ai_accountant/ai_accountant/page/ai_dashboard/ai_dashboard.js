@@ -256,7 +256,6 @@ function renderTransactionStats(data) {
 			<h5>Processing Statistics</h5>
 			<div class="stat-row"><div class="stat-label">Total Transactions:</div><div class="stat-value">${data.total_count}</div></div>
 			<div class="stat-row"><div class="stat-label">Processed Today:</div><div class="stat-value">${data.today_count}</div></div>
-			<div class="stat-row"><div class="stat-label">Avg Processing Time:</div><div class="stat-value">${data.avg_processing_time} seconds</div></div>
 			<div class="stat-row"><div class="stat-label">Pending:</div><div class="stat-value">${data.status_counts.Pending || 0}</div></div>
 			<div class="stat-row"><div class="stat-label">Currently processing:</div><div id="processing-progress" class="stat-value"></div></div>
 
