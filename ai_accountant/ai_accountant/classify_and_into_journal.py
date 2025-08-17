@@ -211,11 +211,11 @@ def classify_batch(status="Pending"):
     processed = workers_processed + processed
 
     notify_progress(processed, total_transactions)
+    # calculate exact processed
+    operating_processed = classify_and_process_msb_expense_transactions(total_transactions, processed, account="operating")
     
-    classify_and_process_msb_expense_transactions(total_transactions, processed, account="operating")
-    
-    notify_progress(processed, total_transactions)
-    classify_and_process_msb_expense_transactions(total_transactions, processed, account="payroll")
+
+    classify_and_process_msb_expense_transactions(total_transactions, operating_processed, account="payroll")
 
     notify_progress(total_transactions, total_transactions)
 
@@ -260,7 +260,7 @@ def classify_and_process_msb_expense_transactions(total_transactions, processed,
     processed = processed + processed_count
     notify_progress(processed_count, total_transactions)   
     
-    return 
+    return processed
 
     
 
